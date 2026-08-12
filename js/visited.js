@@ -73,6 +73,33 @@
   const extrasRoot = document.getElementById("extras-list");
   window.US_EXTRAS.forEach((n) => extrasRoot.appendChild(chip("states", n)));
 
+  // ---- provinces tab: only countries with marked provinces ----
+  function renderProvinces() {
+    const root = document.getElementById("province-lists");
+    root.innerHTML = "";
+    const marked = Store.markedProvinces();
+    const countriesWith = Object.keys(marked).sort((a, b) => displayName(a).localeCompare(displayName(b)));
+    const total = window.PROVINCE_INDEX
+      ? Object.values(window.PROVINCE_INDEX).reduce((s, v) => s + v.count, 0) : 0;
+    document.getElementById("stats-provinces").innerHTML = countriesWith.length
+      ? `Marked <b>${Object.values(marked).flat().length}</b> provinces across ` +
+        `<b>${countriesWith.length}</b> countries (${total.toLocaleString()} exist worldwide). ` +
+        `Zoom into a country on the globe to mark more.`
+      : `Nothing marked yet — zoom into a country on the globe and click its provinces. ` +
+        `(${total.toLocaleString()} provinces across ${Object.keys(window.PROVINCE_INDEX || {}).length} countries are on the map.)`;
+    for (const c of countriesWith) {
+      const h = document.createElement("h2");
+      h.className = "continent";
+      h.innerHTML = `${flagImg("countries", c)} ${displayName(c)} · ${marked[c].length}` +
+        (window.PROVINCE_INDEX && window.PROVINCE_INDEX[c] ? `/${window.PROVINCE_INDEX[c].count}` : "");
+      root.appendChild(h);
+      const grid = document.createElement("div");
+      grid.className = "chip-grid";
+      marked[c].forEach((p) => grid.appendChild(chip("provinces", p.key, p.name)));
+      root.appendChild(grid);
+    }
+  }
+
   // ---- parks tab (cards with lazy-loaded Wikipedia photos) ----
   const parkRoot = document.getElementById("park-list");
   const THUMB_KEY = "travel-tracker-thumbs-v1";
@@ -138,7 +165,8 @@
       `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
       (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
-      `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>`;
+      `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>` +
+      (c.provinces ? `<span>🗺️ <b>${c.provinces}</b> provinces</span>` : "");
     document.getElementById("stats-countries").innerHTML =
       `Visited <b>${c.countries}</b> of <b>${c.countriesTotal}</b> countries` +
       (c.territories ? ` (plus <b>${c.territories}</b> territories)` : "") +
@@ -151,7 +179,7 @@
 
   document.getElementById("btn-export").onclick = () => Store.exportFile();
 
-  function refreshAll() { refreshChips(); refreshParks(); refreshStats(); }
+  function refreshAll() { renderProvinces(); refreshChips(); refreshParks(); refreshStats(); }
   Store.onChange(refreshAll);
   refreshAll();
 })();

@@ -11,8 +11,13 @@ just a static site.
 - **US broken down by state**, drawn right on the globe
 - **All 63 national parks** as pins (zoom in on the US) — click one for a photo
   (pulled from Wikipedia, free) and a "mark as visited" button
-- **Visited page** with tabs: Countries (grouped by continent), US States, National Parks
-- Live stats: countries / states / parks counts
+- **Provinces worldwide**: zoom into any country (India, China, Canada, Australia…)
+  and its first-level divisions appear — click to mark them; the country's color
+  derives from its marked provinces. ~4,500 provinces across 235 countries,
+  lazy-loaded one small file per country (built by `scripts/build-provinces.py`)
+- **Visited page** with tabs: Countries (grouped by continent), US States,
+  Provinces, National Parks — with flags
+- Live stats: countries / states / parks / provinces counts
 
 ## Running it
 
@@ -65,10 +70,21 @@ js/visited.js      visited page
 vendor/            d3 + topojson-client (vendored, works offline)
 ```
 
-## Ideas for later
+## Future work / ideas
 
-- Cities visited (pins with notes/dates)
+Next up (in rough order):
+
+- Small fixes & polish on what exists
+- Accounts for family & friends (Supabase free tier): sign up, add friends,
+  see each other's maps, compare stats
+- Itineraries / trip planning
+
+Backlog:
+
+- Major world cities (pins, like parks)
+- Wonders of the world (pins with photos)
+- National parks of other countries (Patagonia, Banff, Kruger…)
+- Famous hiking destinations (Tour du Mont Blanc, Everest Base Camp, Annapurna…)
 - Trip log: dates, photos, journal entries per place
-- Provinces/states for other countries (Canada, Australia, India…)
 - Share mode: read-only link with your map
 - Animated "travel history" replay

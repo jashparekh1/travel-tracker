@@ -40,6 +40,49 @@
     .data(statesGeo.features).join("path")
     .attr("class", "state");
 
+  // Provinces (admin-1) for the rest of the world, lazy-loaded per country
+  // when zoomed in. Unmarked provinces are transparent so the country's
+  // color shows through; marked ones get their own fill.
+  const provincesLayer = svg.append("g");
+  const PROVINCE_ZOOM = 3;
+  const loadedProv = new Set();
+  const countryCentroids = countries
+    .filter((d) => !window.MERGED_INTO[d.properties.name])
+    .map((d) => [d.properties.name, d3.geoCentroid(d)]);
+
+  async function loadProvinces(name) {
+    loadedProv.add(name);
+    try {
+      const res = await fetch(`data/provinces/${window.PROVINCE_INDEX[name].file}.json`);
+      const gj = await res.json();
+      const paths = provincesLayer.append("g").selectAll("path")
+        .data(gj.features).join("path")
+        .attr("d", path);
+      paths
+        .on("mousemove", (event, d) => showTooltip(event, d.properties.name,
+          `${displayName(name)} · ${regionTooltip("provinces", d.properties.key)}`))
+        .on("mouseout", hideTooltip)
+        .on("click", (event, d) => {
+          if (dragMoved) return;
+          Store.cycle("provinces", d.properties.key);
+          showTooltip(event, d.properties.name,
+            `${displayName(name)} · ${regionTooltip("provinces", d.properties.key)}`);
+        });
+      recolor();
+    } catch (e) {
+      loadedProv.delete(name); // retry on next zoom render
+    }
+  }
+
+  function maybeLoadProvinces() {
+    if (zoomK < PROVINCE_ZOOM) return;
+    const center = [-projection.rotate()[0], -projection.rotate()[1]];
+    for (const [name, centroid] of countryCentroids) {
+      if (loadedProv.has(name) || !window.PROVINCE_INDEX[name]) continue;
+      if (d3.geoDistance(centroid, center) < 0.6) loadProvinces(name);
+    }
+  }
+
   // Outlines on top of all fills: borders between countries, then
   // coastlines/continent edges (slightly brighter).
   const mergedPair = (a, b) =>
@@ -75,6 +118,7 @@
   function recolor() {
     countryPaths.attr("class", (d) => "country " + statusClass("countries", countryName(d)));
     statePaths.attr("class", (d) => "state " + statusClass("states", d.properties.name));
+    provincesLayer.selectAll("path").attr("class", (d) => "province " + statusClass("provinces", d.properties.key));
     parkPins.attr("class", (d) => "park" + (Store.get("parks", d.name) ? " visited" : ""));
     updateStats();
   }
@@ -85,7 +129,8 @@
       `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
       (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
-      `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>`;
+      `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>` +
+      (c.provinces ? `<span>🗺️ <b>${c.provinces}</b> provinces</span>` : "");
   }
 
   // ---- rendering ----
@@ -93,6 +138,12 @@
     svg.selectAll("path.sphere, path.graticule, path.borders, path.coastline").attr("d", path);
     countryPaths.attr("d", path);
     statePaths.attr("d", path);
+
+    provincesLayer.attr("display", zoomK >= PROVINCE_ZOOM ? null : "none");
+    if (zoomK >= PROVINCE_ZOOM) {
+      provincesLayer.selectAll("path").attr("d", path);
+      maybeLoadProvinces();
+    }
 
     const showParks = zoomK >= PARK_ZOOM;
     const [cx, cy] = [-projection.rotate()[0], -projection.rotate()[1]];

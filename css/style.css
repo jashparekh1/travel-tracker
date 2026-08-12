@@ -73,6 +73,11 @@ body.page .topbar { position: sticky; }
 .status-visited { fill: var(--visited); }
 .status-lived { fill: var(--lived); }
 
+/* Provinces: transparent unless marked, so the country color shows through */
+.province { stroke: #8fa3c7; stroke-opacity: 0.45; stroke-width: 0.5; cursor: pointer; }
+.province.status-none { fill: transparent; }
+.province:hover { stroke: #e8eefb; stroke-opacity: 1; stroke-width: 1; }
+
 .park { cursor: pointer; }
 .park .pin-body { stroke: #0b1020; stroke-width: 1; }
 .park.visited .pin-body { fill: #ef4444; }

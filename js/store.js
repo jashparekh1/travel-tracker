@@ -15,7 +15,10 @@ window.Store = (() => {
   } catch (e) {
     overrides = {};
   }
-  for (const k of ["countries", "states", "parks"]) overrides[k] = overrides[k] || {};
+  for (const k of ["countries", "states", "parks", "provinces"]) {
+    overrides[k] = overrides[k] || {};
+    seed[k] = seed[k] || {};
+  }
 
   const listeners = [];
   const notify = () => listeners.forEach((cb) => cb());
@@ -28,13 +31,24 @@ window.Store = (() => {
     return (seed[type] && seed[type][name]) || null;
   }
 
-  // Country status; the US is derived from its states unless set explicitly.
+  // All province keys ("Country/Province") that currently have any status.
+  function provinceKeys() {
+    return [...new Set([...Object.keys(seed.provinces), ...Object.keys(overrides.provinces)])]
+      .filter((k) => raw("provinces", k));
+  }
+
+  // Country status; derived from its states (US) or provinces unless explicit.
   function country(name) {
     const explicit = raw("countries", name);
-    if (name !== "United States of America" || explicit) return explicit;
-    const stateNames = window.US_STATES.concat(window.US_EXTRAS);
-    if (stateNames.some((s) => raw("states", s) === "lived")) return "lived";
-    if (stateNames.some((s) => raw("states", s) === "visited")) return "visited";
+    if (explicit) return explicit;
+    let statuses;
+    if (name === "United States of America") {
+      statuses = window.US_STATES.concat(window.US_EXTRAS).map((s) => raw("states", s));
+    } else {
+      statuses = provinceKeys().filter((k) => k.startsWith(name + "/")).map((k) => raw("provinces", k));
+    }
+    if (statuses.includes("lived")) return "lived";
+    if (statuses.includes("visited")) return "visited";
     return null;
   }
 
@@ -70,7 +84,19 @@ window.Store = (() => {
       countries: c, countriesTotal: sovereign.length, territories: t,
       states: s, statesTotal: window.US_STATES.length,
       parks: p, parksTotal: window.PARKS.length,
+      provinces: provinceKeys().length,
     };
+  }
+
+  // Marked provinces grouped by country: { country: [{name, key, status}] }
+  function markedProvinces() {
+    const out = {};
+    for (const k of provinceKeys()) {
+      const [c, ...rest] = k.split("/");
+      (out[c] = out[c] || []).push({ name: rest.join("/"), key: k, status: raw("provinces", k) });
+    }
+    for (const c of Object.keys(out)) out[c].sort((a, b) => a.name.localeCompare(b.name));
+    return out;
   }
 
   // Merged snapshot (no nulls) for export.
@@ -88,6 +114,8 @@ window.Store = (() => {
       const v = raw("parks", pk.name);
       if (v) out.parks[pk.name] = v;
     }
+    out.provinces = {};
+    for (const k of provinceKeys()) out.provinces[k] = raw("provinces", k);
     return out;
   }
 
@@ -111,7 +139,7 @@ window.Store = (() => {
   }
 
   return {
-    get, cycle, set, counts, exportFile, clearLocal,
+    get, cycle, set, counts, markedProvinces, exportFile, clearLocal,
     onChange: (cb) => listeners.push(cb),
   };
 })();
