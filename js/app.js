@@ -67,8 +67,8 @@
     .attr("pointer-events", "none");
   svg.append("path").attr("class", "coastline")
     .datum(topojson.mesh(world, world.objects.countries, (a, b) => a === b))
-    .attr("fill", "none").attr("stroke", "#a9bcdd")
-    .attr("stroke-width", 0.9).attr("stroke-opacity", 0.9)
+    .attr("fill", "none").attr("stroke", "#0b1020")
+    .attr("stroke-width", 0.8).attr("stroke-opacity", 0.9)
     .attr("pointer-events", "none");
 
   // City labels: display-only atlas dressing, revealed progressively by
