@@ -148,10 +148,6 @@ body.page .topbar { position: sticky; }
 .cmp-both { fill: var(--accent); }
 .cmp-a { fill: var(--visited); }
 .cmp-b { fill: var(--lived); }
-.park.cmp-both .pin-body { fill: var(--accent); }
-.park.cmp-a .pin-body { fill: var(--visited); }
-.park.cmp-b .pin-body { fill: var(--lived); }
-.park.cmp-none .pin-body { fill: #7c8db0; }
 
 /* City labels (display-only) */
 .city circle { fill: #dbe4f5; stroke: #0b1020; stroke-width: 1; }
@@ -182,6 +178,12 @@ body.page .topbar { position: sticky; }
 svg.parks-mode .park-label { display: block; }
 .park.visited .pin-body { fill: #ef4444; }
 .park:not(.visited) .pin-body { fill: #7c8db0; }
+/* Compare colors must come after the :not(.visited) gray rule — equal
+   specificity, so source order decides. */
+.park.cmp-both .pin-body { fill: var(--accent); }
+.park.cmp-a .pin-body { fill: var(--visited); }
+.park.cmp-b .pin-body { fill: var(--lived); }
+.park.cmp-none .pin-body { fill: #7c8db0; }
 .park:hover .pin-body { stroke: #fff; }
 
 .flag {
