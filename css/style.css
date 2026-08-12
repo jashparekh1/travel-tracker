@@ -60,6 +60,23 @@ body.page .topbar { position: sticky; }
 }
 .topbar a:hover, button.btn:hover { background: #223058; }
 
+.seg {
+  display: flex;
+  border: 1px solid #2b3760;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.seg button {
+  background: var(--panel);
+  color: var(--muted);
+  border: none;
+  padding: 6px 13px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.seg button + button { border-left: 1px solid #2b3760; }
+.seg button.active { background: var(--panel-2); color: var(--text); }
+
 /* ---------- globe ---------- */
 #globe { position: fixed; inset: 0; cursor: grab; }
 #globe:active { cursor: grabbing; }

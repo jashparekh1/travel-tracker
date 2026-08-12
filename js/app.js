@@ -80,14 +80,20 @@
   // Some polygons (e.g. Siachen Glacier) track as part of another country.
   const countryName = (d) => window.MERGED_INTO[d.properties.name] || d.properties.name;
 
+  // View mode: "all" (countries + states + parks), "countries", or "parks".
+  let viewMode = localStorage.getItem("travel-tracker-view") || "all";
+
   // ---- coloring ----
   function statusClass(type, name) {
     return "status-" + (Store.get(type, name) || "none");
   }
 
   function recolor() {
-    countryPaths.attr("class", (d) => "country " + statusClass("countries", countryName(d)));
-    statePaths.attr("class", (d) => "state " + statusClass("states", d.properties.name));
+    countryPaths.attr("class", (d) => "country " +
+      (viewMode === "parks" ? "status-none" : statusClass("countries", countryName(d))));
+    statePaths
+      .attr("display", viewMode === "all" ? null : "none")
+      .attr("class", (d) => "state " + statusClass("states", d.properties.name));
     parkPins.attr("class", (d) => "park" + (Store.get("parks", d.name) ? " visited" : ""));
     updateStats();
   }
@@ -107,7 +113,7 @@
     countryPaths.attr("d", path);
     statePaths.attr("d", path);
 
-    const showParks = zoomK >= PARK_ZOOM;
+    const showParks = viewMode === "parks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
     const [cx, cy] = [-projection.rotate()[0], -projection.rotate()[1]];
 
     cityNodes.attr("display", (d) => {
@@ -126,7 +132,8 @@
       const p = projection([d.lon, d.lat]);
       return p ? `translate(${p[0]},${p[1]}) scale(${pinScale})` : null;
     });
-    document.getElementById("park-hint").style.display = showParks ? "none" : "block";
+    document.getElementById("park-hint").style.display =
+      viewMode === "all" && !showParks ? "block" : "none";
   }
 
   // ---- interaction: rotate (drag) + zoom (wheel/pinch) ----
@@ -169,19 +176,24 @@
     return `${label} · click to change`;
   }
 
+  const countrySub = (n) => {
+    if (viewMode === "parks") return "parks view — switch to All to edit";
+    if (n === "United States of America" && viewMode === "all") return "Click your states instead";
+    return regionTooltip("countries", n);
+  };
+
   countryPaths
     .on("mousemove", (event, d) => {
       const n = countryName(d);
-      showTooltip(event, flagImg("countries", n) + displayName(n),
-        n === "United States of America" ? "Click your states instead" : regionTooltip("countries", n));
+      showTooltip(event, flagImg("countries", n) + displayName(n), countrySub(n));
     })
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
-      if (dragMoved) return;
+      if (dragMoved || viewMode === "parks") return;
       const n = countryName(d);
-      if (n === "United States of America") return; // states handle the US
+      if (n === "United States of America" && viewMode === "all") return; // states handle the US
       Store.cycle("countries", n);
-      showTooltip(event, flagImg("countries", n) + displayName(n), regionTooltip("countries", n));
+      showTooltip(event, flagImg("countries", n) + displayName(n), countrySub(n));
     });
 
   statePaths
@@ -243,6 +255,19 @@
       event.stopPropagation();
       openParkCard(d);
     });
+
+  // ---- view toggle ----
+  const segButtons = document.querySelectorAll("#view-toggle button");
+  function setViewMode(mode) {
+    viewMode = mode;
+    localStorage.setItem("travel-tracker-view", mode);
+    segButtons.forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+    if (mode === "countries") card.classList.remove("open"); // pins are hidden
+    recolor();
+    render();
+  }
+  segButtons.forEach((b) => { b.onclick = () => setViewMode(b.dataset.mode); });
+  setViewMode(["all", "countries", "parks"].includes(viewMode) ? viewMode : "all");
 
   // ---- top bar buttons ----
   document.getElementById("btn-export").onclick = () => Store.exportFile();
