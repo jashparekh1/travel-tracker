@@ -91,6 +91,16 @@ body.page .topbar { position: sticky; }
 .status-visited { fill: var(--visited); }
 .status-lived { fill: var(--lived); }
 
+/* Compare mode: blue = both, orange = only me, green = only friend */
+.cmp-none { fill: var(--land); }
+.cmp-both { fill: var(--accent); }
+.cmp-mine { fill: var(--visited); }
+.cmp-theirs { fill: var(--lived); }
+.park.cmp-both .pin-body { fill: var(--accent); }
+.park.cmp-mine .pin-body { fill: var(--visited); }
+.park.cmp-theirs .pin-body { fill: var(--lived); }
+.park.cmp-none .pin-body { fill: #7c8db0; }
+
 /* City labels (display-only) */
 .city circle { fill: #dbe4f5; stroke: #0b1020; stroke-width: 1; }
 .city text {
@@ -257,6 +267,39 @@ button.toggle-visited.is-visited { background: var(--visited); border-color: var
   letter-spacing: 0.05em;
 }
 #btn-account.signed-in { border-color: #2e7d4f; }
+
+button.btn.small { padding: 4px 10px; font-size: 12px; }
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #232c49;
+  font-size: 13.5px;
+}
+.friend-row.you { color: var(--muted); }
+.friend-name { font-weight: 600; min-width: 90px; }
+.friend-stats { flex: 1; color: var(--muted); font-size: 12.5px; }
+
+.add-friend { display: flex; gap: 8px; margin-top: 12px; }
+.add-friend input { flex: 1; margin-bottom: 0; }
+
+#compare-banner {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13.5px;
+}
 
 /* ---------- visited page ---------- */
 .page main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 60px; }

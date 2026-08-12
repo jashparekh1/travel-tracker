@@ -65,6 +65,15 @@ One-time setup:
    `https://<username>.github.io/travel-tracker/`.
 5. Settings → API: copy the Project URL and anon public key into
    `js/supabase-config.js`, commit, push.
+6. For the friends feature: SQL Editor → paste `supabase/friends.sql` → Run.
+
+### Friends & comparing
+
+Signed-in users pick a username (emails are never shown to anyone). Add a
+friend by their exact username via the Friends button, and you can see their
+stats and overlay-compare maps: blue = both of you, orange = only you,
+green = only them. Adding someone by username lets you view their map —
+usernames act like unlisted links.
 
 ## Free hosting on GitHub Pages
 
@@ -97,8 +106,6 @@ vendor/            d3 + topojson-client (vendored, works offline)
 Next up (in rough order):
 
 - Small fixes & polish on what exists
-- Accounts for family & friends (Supabase free tier): sign up, add friends,
-  see each other's maps, compare stats
 - Itineraries / trip planning
 
 Backlog:

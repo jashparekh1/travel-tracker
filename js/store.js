@@ -23,6 +23,7 @@ window.Store = (() => {
   }
 
   let remote = null; // full doc from Supabase; authoritative when present
+  let comparing = null; // {username, doc} — overlay-compare with a friend
 
   const listeners = [];
   const syncListeners = [];
@@ -31,7 +32,7 @@ window.Store = (() => {
   const setSync = (s) => { syncState = s; syncListeners.forEach((cb) => cb(s)); };
   const save = () => localStorage.setItem(KEY, JSON.stringify(overrides));
 
-  // Raw status lookup.
+  // Raw status lookup (always MY data; compare mode never changes it).
   function raw(type, name) {
     const o = overrides[type][name];
     if (o !== undefined) return o === "none" ? null : o;
@@ -56,6 +57,7 @@ window.Store = (() => {
   const CYCLE = { region: [null, "visited", "lived"], park: [null, "visited"] };
 
   function cycle(type, name) {
+    if (comparing) return null; // read-only while comparing
     const order = type === "parks" ? CYCLE.park : CYCLE.region;
     const next = order[(order.indexOf(raw(type, name)) + 1) % order.length];
     overrides[type][name] = next === null ? "none" : next;
@@ -66,6 +68,7 @@ window.Store = (() => {
   }
 
   function set(type, name, status) {
+    if (comparing) return;
     overrides[type][name] = status === null ? "none" : status;
     save();
     schedulePush();
@@ -126,6 +129,7 @@ window.Store = (() => {
   // ---------------- cloud (Supabase) ----------------
   let client = null;
   let user = null;
+  let profile = null; // my username, once chosen
   let pushTimer = null;
 
   const cloudEnabled = () => !!client;
@@ -145,13 +149,17 @@ window.Store = (() => {
 
   async function handleUser(u) {
     user = u;
+    comparing = null;
     if (!user) {
       remote = null;
+      profile = null;
       setSync(client ? "signedout" : "local");
       notify();
       return;
     }
     setSync("saving");
+    client.from("profiles").select("username").eq("user_id", user.id).maybeSingle()
+      .then(({ data: p }) => { profile = p ? p.username : null; setSync(syncState); });
     const { data, error } = await client
       .from("travels").select("data").eq("user_id", user.id).maybeSingle();
     if (error) {
@@ -224,17 +232,122 @@ window.Store = (() => {
     await client.auth.signOut();
   }
 
+  // ---- profile & friends ----
+  async function setUsername(name) {
+    const uname = (name || "").trim().toLowerCase();
+    if (!/^[a-z0-9_]{3,20}$/.test(uname)) {
+      return "3–20 characters: lowercase letters, numbers, underscores.";
+    }
+    const { error } = await client.from("profiles")
+      .insert({ user_id: user.id, username: uname });
+    if (error) return error.code === "23505" ? "That username is taken." : error.message;
+    profile = uname;
+    setSync(syncState); // poke listeners
+    return null;
+  }
+
+  async function addFriend(name) {
+    const uname = (name || "").trim().toLowerCase().replace(/^@/, "");
+    if (!uname) return "Enter a username.";
+    const { data: p, error } = await client.from("profiles")
+      .select("user_id").eq("username", uname).maybeSingle();
+    if (error) return error.message;
+    if (!p) return "No user with that username.";
+    if (p.user_id === user.id) return "That's you!";
+    const { error: e2 } = await client.from("friendships")
+      .insert({ user_id: user.id, friend_id: p.user_id });
+    if (e2) return e2.code === "23505" ? "Already in your friends." : e2.message;
+    return null;
+  }
+
+  async function removeFriend(friendId) {
+    await client.from("friendships").delete()
+      .eq("user_id", user.id).eq("friend_id", friendId);
+  }
+
+  // Friends with their usernames and travel docs (for stats + viewing).
+  async function myFriends() {
+    const { data: fr, error } = await client.from("friendships").select("friend_id");
+    if (error) return { error: error.message };
+    const ids = (fr || []).map((r) => r.friend_id);
+    if (!ids.length) return { friends: [] };
+    const [profs, travels] = await Promise.all([
+      client.from("profiles").select("user_id, username").in("user_id", ids),
+      client.from("travels").select("user_id, data").in("user_id", ids),
+    ]);
+    if (profs.error) return { error: profs.error.message };
+    const docs = {};
+    (travels.data || []).forEach((t) => { docs[t.user_id] = t.data || {}; });
+    const friends = (profs.data || [])
+      .map((p) => ({ id: p.user_id, username: p.username, doc: docs[p.user_id] || {} }))
+      .sort((a, b) => a.username.localeCompare(b.username));
+    return { friends };
+  }
+
+  // Counts for any plain travel doc (used to compare friends).
+  function countsFromDoc(doc) {
+    doc = doc || {};
+    const c = doc.countries || {}, s = doc.states || {}, p = doc.parks || {};
+    const sovereign = Object.keys(window.COUNTRY_META).filter((n) => window.COUNTRY_META[n][2]);
+    let countries = sovereign.filter((n) => c[n]).length;
+    const usFromStates = window.US_STATES.concat(window.US_EXTRAS).some((n) => s[n]);
+    if (usFromStates && !c["United States of America"]) countries += 1;
+    return {
+      countries,
+      states: window.US_STATES.filter((n) => s[n]).length,
+      parks: Object.keys(p).length,
+    };
+  }
+
+  // ---- compare mode ----
+  // Country status inside an arbitrary doc (same US-derivation rule).
+  function docCountry(doc, name) {
+    const explicit = (doc.countries || {})[name];
+    if (name !== "United States of America" || explicit) return explicit || null;
+    const s = doc.states || {};
+    return window.US_STATES.concat(window.US_EXTRAS).some((n) => s[n]) ? "visited" : null;
+  }
+
+  // "both" | "mine" | "theirs" | null for the active comparison.
+  function compareStatus(type, name) {
+    if (!comparing) return null;
+    const mine = get(type, name);
+    const theirs = type === "countries"
+      ? docCountry(comparing.doc, name)
+      : ((comparing.doc[type] || {})[name] || null);
+    if (mine && theirs) return "both";
+    if (mine) return "mine";
+    if (theirs) return "theirs";
+    return null;
+  }
+
+  function compareWith(username, doc) {
+    doc = doc || {};
+    for (const k of TYPES) doc[k] = doc[k] || {};
+    comparing = { username, doc };
+    notify();
+  }
+
+  function compareOff() {
+    comparing = null;
+    notify();
+  }
+
   initCloud();
 
   return {
     get, cycle, set, counts, exportFile, clearLocal,
     onChange: (cb) => listeners.push(cb),
+    compareWith, compareOff, compareStatus,
+    comparing: () => (comparing ? comparing.username : null),
     cloud: {
       enabled: cloudEnabled,
       user: () => user,
+      profile: () => profile,
       state: () => syncState,
       onSync: (cb) => syncListeners.push(cb),
       signIn, signUp, signInGoogle, signOut,
+      setUsername, addFriend, removeFriend, myFriends, countsFromDoc,
     },
   };
 })();

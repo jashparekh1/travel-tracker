@@ -95,8 +95,22 @@
   function statusClass(type, name) {
     return "status-" + (Store.get(type, name) || "none");
   }
+  function compareClass(type, name) {
+    return "cmp-" + (Store.compareStatus(type, name) || "none");
+  }
+  function regionClass(type, name) {
+    return Store.comparing() ? compareClass(type, name) : statusClass(type, name);
+  }
+  function compareSub(type, name) {
+    const s = Store.compareStatus(type, name);
+    return s === "both" ? "both of you have been here"
+      : s === "mine" ? "only you"
+      : s === "theirs" ? `only @${Store.comparing()}`
+      : "neither of you yet";
+  }
 
   function recolor() {
+    const cmp = Store.comparing();
     countryPaths.attr("class", (d) => {
       const n = countryName(d);
       // In All view the states layer carries the US's color; painting the
@@ -104,13 +118,24 @@
       // fringes the state shapes don't exactly cover.
       const cls = viewMode === "parks" ? "status-none"
         : viewMode === "all" && n === "United States of America" ? "status-none"
-        : statusClass("countries", n);
+        : regionClass("countries", n);
       return "country " + cls;
     });
     statePaths
       .attr("display", viewMode === "all" ? null : "none")
-      .attr("class", (d) => "state " + statusClass("states", d.properties.name));
-    parkPins.attr("class", (d) => "park" + (Store.get("parks", d.name) ? " visited" : ""));
+      .attr("class", (d) => "state " + regionClass("states", d.properties.name));
+    parkPins.attr("class", (d) => "park " +
+      (cmp ? compareClass("parks", d.name) : (Store.get("parks", d.name) ? "visited" : "")));
+
+    // Legend + banner follow compare state.
+    document.getElementById("legend-default").style.display = cmp ? "none" : "grid";
+    document.getElementById("legend-compare").style.display = cmp ? "grid" : "none";
+    const banner = document.getElementById("compare-banner");
+    banner.style.display = cmp ? "flex" : "none";
+    if (cmp) {
+      document.getElementById("compare-name").textContent = "@" + cmp;
+      document.getElementById("legend-their-name").textContent = "@" + cmp;
+    }
     updateStats();
   }
 
@@ -194,6 +219,7 @@
   }
 
   const countrySub = (n) => {
+    if (Store.comparing()) return compareSub("countries", n);
     if (viewMode === "parks") return "parks view — switch to All to edit";
     if (n === "United States of America" && viewMode === "all") return "Click your states instead";
     return regionTooltip("countries", n);
@@ -213,13 +239,14 @@
       showTooltip(event, flagImg("countries", n) + displayName(n), countrySub(n));
     });
 
+  const stateSub = (n) => Store.comparing() ? compareSub("states", n) : regionTooltip("states", n);
   statePaths
-    .on("mousemove", (event, d) => showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, regionTooltip("states", d.properties.name)))
+    .on("mousemove", (event, d) => showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, stateSub(d.properties.name)))
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
       if (dragMoved) return;
       Store.cycle("states", d.properties.name);
-      showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, regionTooltip("states", d.properties.name));
+      showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, stateSub(d.properties.name));
     });
 
   // ---- park card ----
@@ -241,8 +268,9 @@
   function renderCardButton(park) {
     const btn = card.querySelector(".toggle-visited");
     const visited = !!Store.get("parks", park.name);
-    btn.textContent = visited ? "✓ Visited" : "Mark as visited";
-    btn.classList.toggle("is-visited", visited);
+    btn.disabled = !!Store.comparing();
+    btn.textContent = Store.comparing() ? "Compare mode" : visited ? "✓ Visited" : "Mark as visited";
+    btn.classList.toggle("is-visited", visited && !Store.comparing());
     btn.onclick = () => { Store.cycle("parks", park.name); renderCardButton(park); };
   }
 
@@ -264,7 +292,9 @@
   parkPins
     .on("mousemove", (event, d) => {
       event.stopPropagation();
-      showTooltip(event, d.name + " National Park", (Store.get("parks", d.name) ? "Visited" : "Not visited yet") + " · click for details");
+      const sub = Store.comparing() ? compareSub("parks", d.name)
+        : (Store.get("parks", d.name) ? "Visited" : "Not visited yet") + " · click for details";
+      showTooltip(event, d.name + " National Park", sub);
     })
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {

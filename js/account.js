@@ -24,8 +24,9 @@
   function renderModal() {
     const u = Store.cloud.user();
     if (u) {
+      const uname = Store.cloud.profile();
       body.innerHTML =
-        `<p class="acct-line">Signed in as <b>${u.email}</b></p>` +
+        `<p class="acct-line">Signed in as <b>${u.email}</b>${uname ? ` (@${uname})` : ""}</p>` +
         `<p class="acct-line muted" id="sync-line">${SYNC_LABEL[Store.cloud.state()] || ""}</p>` +
         `<p class="acct-line muted">Your map saves to the cloud automatically and follows you across devices.</p>` +
         `<button class="btn" id="btn-signout">Sign out</button>`;
