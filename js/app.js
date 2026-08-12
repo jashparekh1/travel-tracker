@@ -26,7 +26,11 @@
     d3.json("data/lakes-50m.json"),
     d3.json("data/cities.json?v=2"),
   ]);
-  const cities = citiesRaw.map(([name, lat, lon, rank, cap]) => ({ name, lat, lon, rank, cap }));
+  // Phones get ranks 0-2 only; desktop keeps 0-3.
+  const MAX_CITY_RANK = window.matchMedia("(max-width: 640px)").matches ? 2 : 3;
+  const cities = citiesRaw
+    .map(([name, lat, lon, rank, cap]) => ({ name, lat, lon, rank, cap }))
+    .filter((d) => d.rank <= MAX_CITY_RANK);
   const countries = topojson.feature(world, world.objects.countries).features;
 
   // ---- layers (order = paint order) ----
