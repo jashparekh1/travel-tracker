@@ -77,6 +77,58 @@ body.page .topbar { position: sticky; }
 .seg button + button { border-left: 1px solid #2b3760; }
 .seg button.active { background: var(--panel-2); color: var(--text); }
 
+/* Floating view toggle, bottom-right */
+.seg-float {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10;
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+/* Overflow menu */
+.menu-wrap { position: relative; }
+.menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--panel);
+  border: 1px solid #2b3760;
+  border-radius: 10px;
+  padding: 6px;
+  min-width: 170px;
+  z-index: 30;
+}
+.menu.open { display: block; }
+.menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.menu button:hover { background: var(--panel-2); }
+
+/* Compare modal selects */
+.compare-pick { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.compare-pick label { font-size: 12.5px; color: var(--muted); width: 60px; }
+.compare-pick select {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid #2b3760;
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13.5px;
+}
+
 /* ---------- globe ---------- */
 #globe { position: fixed; inset: 0; cursor: grab; }
 #globe:active { cursor: grabbing; }
@@ -91,14 +143,14 @@ body.page .topbar { position: sticky; }
 .status-visited { fill: var(--visited); }
 .status-lived { fill: var(--lived); }
 
-/* Compare mode: blue = both, orange = only me, green = only friend */
+/* Compare mode: blue = both, orange = person A, green = person B */
 .cmp-none { fill: var(--land); }
 .cmp-both { fill: var(--accent); }
-.cmp-mine { fill: var(--visited); }
-.cmp-theirs { fill: var(--lived); }
+.cmp-a { fill: var(--visited); }
+.cmp-b { fill: var(--lived); }
 .park.cmp-both .pin-body { fill: var(--accent); }
-.park.cmp-mine .pin-body { fill: var(--visited); }
-.park.cmp-theirs .pin-body { fill: var(--lived); }
+.park.cmp-a .pin-body { fill: var(--visited); }
+.park.cmp-b .pin-body { fill: var(--lived); }
 .park.cmp-none .pin-body { fill: #7c8db0; }
 
 /* City labels (display-only) */

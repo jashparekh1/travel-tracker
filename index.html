@@ -12,17 +12,24 @@
     <h1>🌍 My Travels</h1>
     <div class="stats" id="stats"></div>
     <div class="spacer"></div>
-    <div class="seg" id="view-toggle">
-      <button data-mode="all" class="active">All</button>
-      <button data-mode="countries">Countries</button>
-      <button data-mode="parks">Parks</button>
-    </div>
     <a href="visited.html">Visited lists →</a>
     <button class="btn" id="btn-friends">Friends</button>
+    <button class="btn" id="btn-compare">Compare</button>
     <button class="btn" id="btn-account">Sign in</button>
-    <button class="btn" id="btn-reset">Reset view</button>
-    <button class="btn" id="btn-export" title="Download my-travels.js to commit to git">Export</button>
-    <button class="btn" id="btn-clear" title="Drop browser edits, back to the committed file">Clear local edits</button>
+    <div class="menu-wrap">
+      <button class="btn" id="btn-menu" title="More">⋯</button>
+      <div class="menu" id="menu-dropdown">
+        <button id="btn-reset">Reset view</button>
+        <button id="btn-export" title="Download my-travels.js to commit to git">Export data</button>
+        <button id="btn-clear" title="Drop browser edits, back to the committed file">Clear local edits</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="seg seg-float" id="view-toggle">
+    <button data-mode="all" class="active">All</button>
+    <button data-mode="countries">Countries</button>
+    <button data-mode="parks">Parks</button>
   </div>
 
   <svg id="globe"></svg>
@@ -36,15 +43,23 @@
   </div>
 
   <div class="legend" id="legend-compare" style="display: none">
-    <div class="row"><span class="swatch" style="background: var(--accent)"></span> Both of you</div>
-    <div class="row"><span class="swatch" style="background: var(--visited)"></span> Only you</div>
-    <div class="row"><span class="swatch" style="background: var(--lived)"></span> Only <span id="legend-their-name"></span></div>
+    <div class="row"><span class="swatch" style="background: var(--accent)"></span> Both</div>
+    <div class="row"><span class="swatch" style="background: var(--visited)"></span> Only <span id="legend-a-name"></span></div>
+    <div class="row"><span class="swatch" style="background: var(--lived)"></span> Only <span id="legend-b-name"></span></div>
     <div class="row"><span class="swatch" style="background: var(--land)"></span> Neither</div>
   </div>
 
   <div id="compare-banner" style="display: none">
-    Comparing with <b id="compare-name"></b>
-    <button class="btn small" id="compare-exit">Back to my map</button>
+    <b id="compare-name"></b>
+    <button class="btn small" id="compare-exit">Exit compare</button>
+  </div>
+
+  <div id="compare-modal" class="modal-backdrop">
+    <div class="modal">
+      <button class="close" id="compare-close">✕</button>
+      <h3>Compare maps</h3>
+      <div id="compare-body"></div>
+    </div>
   </div>
 
   <div id="friends-modal" class="modal-backdrop">
@@ -89,6 +104,7 @@
   <script src="js/store.js"></script>
   <script src="js/account.js"></script>
   <script src="js/friends.js"></script>
+  <script src="js/compare.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -42,7 +42,6 @@
     }
 
     const mine = Store.counts();
-    const cmp = Store.comparing();
     let html =
       `<p class="acct-line">You are <b>@${Store.cloud.profile()}</b> — share that with friends so they can add you.</p>` +
       `<div class="friend-row you"><span class="friend-name">you</span>` +
@@ -50,12 +49,10 @@
 
     for (const f of friends) {
       const c = Store.cloud.countsFromDoc(f.doc);
-      const active = cmp === f.username;
       html +=
         `<div class="friend-row" data-id="${f.id}">` +
         `<span class="friend-name">@${f.username}</span>` +
         `<span class="friend-stats">${statsLine(c)}</span>` +
-        `<button class="btn small compare-btn" data-u="${f.username}">${active ? "✓ comparing" : "Compare"}</button>` +
         `<button class="btn small remove-btn" title="Remove friend">✕</button>` +
         `</div>`;
     }
@@ -69,22 +66,10 @@
       `</div><div class="acct-error" id="friend-error"></div>`;
     body.innerHTML = html;
 
-    const friendByRow = {};
-    friends.forEach((f) => { friendByRow[f.id] = f; });
-
-    body.querySelectorAll(".compare-btn").forEach((b) => {
-      b.onclick = () => {
-        const f = friends.find((x) => x.username === b.dataset.u);
-        if (Store.comparing() === f.username) Store.compareOff();
-        else Store.compareWith(f.username, f.doc);
-        close();
-      };
-    });
     body.querySelectorAll(".remove-btn").forEach((b) => {
       b.onclick = async () => {
         const row = b.closest(".friend-row");
-        const f = friendByRow[row.dataset.id];
-        if (Store.comparing() === f.username) Store.compareOff();
+        Store.compareOff();
         await Store.cloud.removeFriend(row.dataset.id);
         renderModal();
       };
@@ -105,5 +90,4 @@
   btn.onclick = open;
   modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
   document.getElementById("friends-close").onclick = close;
-  document.getElementById("compare-exit").onclick = () => Store.compareOff();
 })();

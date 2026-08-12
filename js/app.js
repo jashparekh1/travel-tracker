@@ -89,7 +89,8 @@
   const countryName = (d) => window.MERGED_INTO[d.properties.name] || d.properties.name;
 
   // View mode: "all" (countries + states + parks), "countries", or "parks".
-  let viewMode = localStorage.getItem("travel-tracker-view") || "all";
+  // Always opens in "all".
+  let viewMode = "all";
 
   // ---- coloring ----
   function statusClass(type, name) {
@@ -103,10 +104,11 @@
   }
   function compareSub(type, name) {
     const s = Store.compareStatus(type, name);
-    return s === "both" ? "both of you have been here"
-      : s === "mine" ? "only you"
-      : s === "theirs" ? `only @${Store.comparing()}`
-      : "neither of you yet";
+    const cmp = Store.comparing();
+    return s === "both" ? "both have been here"
+      : s === "a" ? `only ${cmp.a}`
+      : s === "b" ? `only ${cmp.b}`
+      : "neither yet";
   }
 
   function recolor() {
@@ -133,8 +135,9 @@
     const banner = document.getElementById("compare-banner");
     banner.style.display = cmp ? "flex" : "none";
     if (cmp) {
-      document.getElementById("compare-name").textContent = "@" + cmp;
-      document.getElementById("legend-their-name").textContent = "@" + cmp;
+      document.getElementById("compare-name").textContent = `${cmp.a} vs ${cmp.b}`;
+      document.getElementById("legend-a-name").textContent = cmp.a;
+      document.getElementById("legend-b-name").textContent = cmp.b;
     }
     updateStats();
   }
@@ -307,14 +310,21 @@
   const segButtons = document.querySelectorAll("#view-toggle button");
   function setViewMode(mode) {
     viewMode = mode;
-    localStorage.setItem("travel-tracker-view", mode);
     segButtons.forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
     if (mode === "countries") card.classList.remove("open"); // pins are hidden
     recolor();
     render();
   }
   segButtons.forEach((b) => { b.onclick = () => setViewMode(b.dataset.mode); });
-  setViewMode(["all", "countries", "parks"].includes(viewMode) ? viewMode : "all");
+  setViewMode("all");
+
+  // ---- overflow menu ----
+  const menuBtn = document.getElementById("btn-menu");
+  const menu = document.getElementById("menu-dropdown");
+  menuBtn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle("open"); };
+  document.addEventListener("click", (e) => {
+    if (!menu.contains(e.target)) menu.classList.remove("open");
+  });
 
   // ---- top bar buttons ----
   document.getElementById("btn-export").onclick = () => Store.exportFile();

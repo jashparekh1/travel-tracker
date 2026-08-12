@@ -23,7 +23,7 @@ window.Store = (() => {
   }
 
   let remote = null; // full doc from Supabase; authoritative when present
-  let comparing = null; // {username, doc} — overlay-compare with a friend
+  let comparing = null; // {a: {name, doc}, b: {name, doc}} — overlay compare
 
   const listeners = [];
   const syncListeners = [];
@@ -299,7 +299,7 @@ window.Store = (() => {
     };
   }
 
-  // ---- compare mode ----
+  // ---- compare mode (any two people from {me + my friends}) ----
   // Country status inside an arbitrary doc (same US-derivation rule).
   function docCountry(doc, name) {
     const explicit = (doc.countries || {})[name];
@@ -308,23 +308,32 @@ window.Store = (() => {
     return window.US_STATES.concat(window.US_EXTRAS).some((n) => s[n]) ? "visited" : null;
   }
 
-  // "both" | "mine" | "theirs" | null for the active comparison.
+  function docStatus(doc, type, name) {
+    return type === "countries" ? docCountry(doc, name) : (doc[type] || {})[name] || null;
+  }
+
+  // "both" | "a" | "b" | null for the active comparison.
   function compareStatus(type, name) {
     if (!comparing) return null;
-    const mine = get(type, name);
-    const theirs = type === "countries"
-      ? docCountry(comparing.doc, name)
-      : ((comparing.doc[type] || {})[name] || null);
-    if (mine && theirs) return "both";
-    if (mine) return "mine";
-    if (theirs) return "theirs";
+    const a = docStatus(comparing.a.doc, type, name);
+    const b = docStatus(comparing.b.doc, type, name);
+    if (a && b) return "both";
+    if (a) return "a";
+    if (b) return "b";
     return null;
   }
 
-  function compareWith(username, doc) {
+  function normalizeDoc(doc) {
     doc = doc || {};
     for (const k of TYPES) doc[k] = doc[k] || {};
-    comparing = { username, doc };
+    return doc;
+  }
+
+  function compareWith(a, b) {
+    comparing = {
+      a: { name: a.name, doc: normalizeDoc(a.doc) },
+      b: { name: b.name, doc: normalizeDoc(b.doc) },
+    };
     notify();
   }
 
@@ -339,7 +348,8 @@ window.Store = (() => {
     get, cycle, set, counts, exportFile, clearLocal,
     onChange: (cb) => listeners.push(cb),
     compareWith, compareOff, compareStatus,
-    comparing: () => (comparing ? comparing.username : null),
+    comparing: () => (comparing ? { a: comparing.a.name, b: comparing.b.name } : null),
+    myDoc: () => merged(),
     cloud: {
       enabled: cloudEnabled,
       user: () => user,
