@@ -130,7 +130,7 @@ body.page .topbar { position: sticky; }
 }
 
 /* ---------- globe ---------- */
-#globe { position: fixed; inset: 0; cursor: grab; }
+#globe { position: fixed; inset: 0; cursor: grab; touch-action: none; }
 #globe:active { cursor: grabbing; }
 
 .country { stroke: none; }
@@ -428,3 +428,31 @@ h2.continent {
 .park-tile .sub { color: var(--muted); font-size: 11.5px; margin-bottom: 9px; }
 
 .footer-note { margin-top: 34px; color: var(--muted); font-size: 12.5px; }
+
+/* ---------- mobile ---------- */
+@media (max-width: 640px) {
+  .topbar { padding: 8px 10px; gap: 6px; }
+  .topbar h1 { font-size: 14px; }
+  .stats { font-size: 11px; gap: 8px; }
+  .topbar a, button.btn { font-size: 12px; padding: 5px 9px; }
+
+  .legend { padding: 8px 10px; font-size: 11px; }
+  .legend .hint { display: none; }
+
+  .seg-float { right: 8px; bottom: 8px; }
+  .seg button { padding: 6px 10px; font-size: 12px; }
+  .legend { left: 8px; bottom: 8px; }
+
+  .modal { width: calc(100vw - 32px); max-width: 340px; }
+  /* 16px+ inputs stop iOS from auto-zooming the page on focus */
+  .modal input, .compare-pick select { font-size: 16px; }
+
+  #park-card { right: 8px; left: 8px; top: auto; bottom: 64px; width: auto; }
+
+  #compare-banner {
+    top: auto;
+    bottom: 64px;
+    max-width: calc(100vw - 16px);
+    font-size: 12.5px;
+  }
+}
