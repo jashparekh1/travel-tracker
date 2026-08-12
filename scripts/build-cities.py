@@ -8,7 +8,7 @@ Usage: python3 scripts/build-cities.py <path-to-ne_10m_populated_places_simple.j
 """
 import json, sys
 
-RANK_CUTOFF = 4
+RANK_CUTOFF = 3
 
 def main(path):
     gj = json.load(open(path))

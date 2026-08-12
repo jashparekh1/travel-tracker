@@ -24,7 +24,7 @@
     d3.json("data/countries-50m.json"),
     d3.json("data/us-states.json"),
     d3.json("data/lakes-50m.json"),
-    d3.json("data/cities.json"),
+    d3.json("data/cities.json?v=2"),
   ]);
   const cities = citiesRaw.map(([name, lat, lon, rank, cap]) => ({ name, lat, lon, rank, cap }));
   const countries = topojson.feature(world, world.objects.countries).features;
@@ -70,7 +70,7 @@
   // City labels: display-only atlas dressing, revealed progressively by
   // importance rank. Never intercepts clicks (pointer-events: none).
   const citiesLayer = svg.append("g").attr("class", "cities").attr("pointer-events", "none");
-  const CITY_ZOOM = [1.2, 1.6, 2.2, 3.2, 4.2]; // min zoom per rank 0..4
+  const CITY_ZOOM = [1.2, 1.6, 2.2, 3.2]; // min zoom per rank 0..3
   const cityNodes = citiesLayer.selectAll("g")
     .data(cities).join("g")
     .attr("class", (d) => "city" + (d.cap ? " capital" : ""));
