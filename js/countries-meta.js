@@ -188,7 +188,6 @@ window.COUNTRY_META = {
   "Senegal": ["Africa", "sn", 1, "Senegal"],
   "Serbia": ["Europe", "rs", 1, "Serbia"],
   "Seychelles": ["Africa", "sc", 1, "Seychelles"],
-  "Siachen Glacier": ["Asia", "", 0, "Siachen Glacier"],
   "Sierra Leone": ["Africa", "sl", 1, "Sierra Leone"],
   "Singapore": ["Asia", "sg", 1, "Singapore"],
   "Sint Maarten": ["North America", "sx", 0, "Sint Maarten"],
@@ -243,6 +242,13 @@ window.COUNTRY_META = {
   "Zimbabwe": ["Africa", "zw", 1, "Zimbabwe"],
   "eSwatini": ["Africa", "sz", 1, "Eswatini"],
   "\u00c5land": ["Europe", "ax", 0, "\u00c5land Islands"],
+};
+
+// Map polygons that belong to another country's tracking entry.
+// The 50m dataset draws these as separate shapes; we treat them as
+// part of the country that administers them.
+window.MERGED_INTO = {
+  "Siachen Glacier": "India",
 };
 
 window.displayName = (name) => {

@@ -42,8 +42,11 @@
 
   // Outlines on top of all fills: borders between countries, then
   // coastlines/continent edges (slightly brighter).
+  const mergedPair = (a, b) =>
+    window.MERGED_INTO[a.properties.name] === b.properties.name ||
+    window.MERGED_INTO[b.properties.name] === a.properties.name;
   svg.append("path").attr("class", "borders")
-    .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
+    .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b && !mergedPair(a, b)))
     .attr("fill", "none").attr("stroke", "#8fa3c7")
     .attr("stroke-width", 0.6).attr("stroke-opacity", 0.55)
     .attr("pointer-events", "none");
@@ -61,13 +64,16 @@
   parkPins.append("path").attr("class", "pin-body").attr("d", PIN);
   parkPins.append("circle").attr("cy", -16).attr("r", 3).attr("fill", "#0b1020");
 
+  // Some polygons (e.g. Siachen Glacier) track as part of another country.
+  const countryName = (d) => window.MERGED_INTO[d.properties.name] || d.properties.name;
+
   // ---- coloring ----
   function statusClass(type, name) {
     return "status-" + (Store.get(type, name) || "none");
   }
 
   function recolor() {
-    countryPaths.attr("class", (d) => "country " + statusClass("countries", d.properties.name));
+    countryPaths.attr("class", (d) => "country " + statusClass("countries", countryName(d)));
     statePaths.attr("class", (d) => "state " + statusClass("states", d.properties.name));
     parkPins.attr("class", (d) => "park" + (Store.get("parks", d.name) ? " visited" : ""));
     updateStats();
@@ -143,14 +149,14 @@
 
   countryPaths
     .on("mousemove", (event, d) => {
-      const n = d.properties.name;
+      const n = countryName(d);
       showTooltip(event, flagImg("countries", n) + displayName(n),
         n === "United States of America" ? "Click your states instead" : regionTooltip("countries", n));
     })
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
       if (dragMoved) return;
-      const n = d.properties.name;
+      const n = countryName(d);
       if (n === "United States of America") return; // states handle the US
       Store.cycle("countries", n);
       showTooltip(event, flagImg("countries", n) + displayName(n), regionTooltip("countries", n));
