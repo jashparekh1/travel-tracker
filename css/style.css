@@ -1,0 +1,230 @@
+:root {
+  --bg: #0b1020;
+  --panel: #131a2e;
+  --panel-2: #1a2340;
+  --text: #e8ecf5;
+  --muted: #93a0bd;
+  --land: #333c52;
+  --land-hover: #46516d;
+  --border: #0b1020;
+  --ocean: #101830;
+  --visited: #f59e0b;
+  --lived: #22c55e;
+  --accent: #60a5fa;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+body.page { overflow: auto; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #232c49;
+  flex-wrap: wrap;
+}
+
+body.page .topbar { position: sticky; }
+
+.topbar h1 { font-size: 17px; font-weight: 700; white-space: nowrap; }
+
+.stats { display: flex; gap: 14px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.stats b { color: var(--text); }
+
+.topbar .spacer { flex: 1; }
+
+.topbar a, button.btn {
+  font-size: 13px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid #2b3760;
+  border-radius: 8px;
+  padding: 6px 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.topbar a:hover, button.btn:hover { background: #223058; }
+
+/* ---------- globe ---------- */
+#globe { position: fixed; inset: 0; cursor: grab; }
+#globe:active { cursor: grabbing; }
+
+.country { stroke: var(--border); stroke-width: 0.5; }
+.state { stroke: var(--border); stroke-width: 0.4; }
+.country, .state { cursor: pointer; }
+.country:hover, .state:hover { stroke: #cbd5e1; stroke-width: 0.8; }
+
+.status-none { fill: var(--land); }
+.status-visited { fill: var(--visited); }
+.status-lived { fill: var(--lived); }
+
+.park { cursor: pointer; }
+.park .pin-body { stroke: #0b1020; stroke-width: 1; }
+.park.visited .pin-body { fill: var(--visited); }
+.park:not(.visited) .pin-body { fill: #7c8db0; }
+.park:hover .pin-body { stroke: #fff; }
+
+/* ---------- floating UI ---------- */
+.legend {
+  position: fixed;
+  left: 16px; bottom: 16px;
+  z-index: 10;
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
+  border: 1px solid #232c49;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+}
+.legend .row { display: flex; align-items: center; gap: 8px; }
+.legend .swatch { width: 12px; height: 12px; border-radius: 3px; }
+.legend .hint { margin-top: 2px; font-size: 11.5px; }
+
+#tooltip {
+  position: fixed;
+  z-index: 20;
+  pointer-events: none;
+  background: #0f1526ee;
+  border: 1px solid #2b3760;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  display: none;
+  max-width: 240px;
+}
+#tooltip .tt-status { color: var(--muted); font-size: 11.5px; }
+
+/* ---------- park card ---------- */
+#park-card {
+  position: fixed;
+  right: 16px; top: 64px;
+  z-index: 15;
+  width: 280px;
+  background: var(--panel);
+  border: 1px solid #2b3760;
+  border-radius: 12px;
+  overflow: hidden;
+  display: none;
+}
+#park-card.open { display: block; }
+#park-card .photo {
+  width: 100%; height: 150px;
+  background: var(--panel-2) center/cover no-repeat;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 32px;
+}
+#park-card .body { padding: 12px 14px 14px; }
+#park-card h3 { font-size: 15px; margin-bottom: 2px; }
+#park-card .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 10px; }
+#park-card .actions { display: flex; gap: 8px; align-items: center; }
+#park-card .close {
+  position: absolute; top: 8px; right: 8px;
+  background: #0009; border: none; color: #fff;
+  width: 24px; height: 24px; border-radius: 50%;
+  cursor: pointer; font-size: 13px; line-height: 1;
+}
+#park-card a.wiki-link { font-size: 12px; color: var(--accent); text-decoration: none; }
+
+button.toggle-visited {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid #2b3760;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+button.toggle-visited.is-visited { background: var(--visited); border-color: var(--visited); color: #1a1203; font-weight: 600; }
+
+/* ---------- visited page ---------- */
+.page main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 60px; }
+
+.tabs { display: flex; gap: 8px; margin: 6px 0 18px; }
+.tabs button {
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid #232c49;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tabs button.active { background: var(--panel-2); color: var(--text); border-color: #3b4a7a; }
+
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+.pane-stats { color: var(--muted); font-size: 13.5px; margin-bottom: 16px; }
+.pane-stats b { color: var(--text); }
+
+h2.continent {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 22px 0 10px;
+}
+
+.chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--panel);
+  border: 1px solid #232c49;
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+.chip:hover { border-color: #3b4a7a; }
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; background: #4a5674; flex: none; }
+.chip.visited { border-color: color-mix(in srgb, var(--visited) 55%, transparent); }
+.chip.visited .dot { background: var(--visited); }
+.chip.lived { border-color: color-mix(in srgb, var(--lived) 55%, transparent); }
+.chip.lived .dot { background: var(--lived); }
+
+/* park cards grid */
+.park-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+}
+.park-tile {
+  background: var(--panel);
+  border: 1px solid #232c49;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.park-tile.visited { border-color: color-mix(in srgb, var(--visited) 60%, transparent); }
+.park-tile .photo {
+  width: 100%; height: 110px;
+  background: var(--panel-2) center/cover no-repeat;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: var(--muted);
+}
+.park-tile .body { padding: 10px 12px 12px; }
+.park-tile h3 { font-size: 13.5px; margin-bottom: 1px; }
+.park-tile .sub { color: var(--muted); font-size: 11.5px; margin-bottom: 9px; }
+
+.footer-note { margin-top: 34px; color: var(--muted); font-size: 12.5px; }

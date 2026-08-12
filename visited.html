@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Travels · Visited</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="page">
+  <div class="topbar">
+    <h1>🌍 My Travels</h1>
+    <div class="stats" id="stats"></div>
+    <div class="spacer"></div>
+    <a href="index.html">← Back to globe</a>
+    <button class="btn" id="btn-export" title="Download my-travels.js to commit to git">Export</button>
+  </div>
+
+  <main>
+    <div class="tabs">
+      <button data-tab="countries" class="active">Countries</button>
+      <button data-tab="states">US States</button>
+      <button data-tab="parks">National Parks</button>
+    </div>
+
+    <div class="tab-pane active" id="pane-countries">
+      <div class="pane-stats" id="stats-countries"></div>
+      <div id="continent-lists"></div>
+    </div>
+
+    <div class="tab-pane" id="pane-states">
+      <div class="pane-stats" id="stats-states"></div>
+      <div class="chip-grid" id="state-list"></div>
+      <h2 class="continent">Also on the map</h2>
+      <div class="chip-grid" id="extras-list"></div>
+    </div>
+
+    <div class="tab-pane" id="pane-parks">
+      <div class="pane-stats" id="stats-parks"></div>
+      <div class="park-grid" id="park-list"></div>
+    </div>
+
+    <p class="footer-note">
+      Click anything to toggle its status. Changes live in this browser until you
+      press <b>Export</b> and commit the downloaded file as <code>data/my-travels.js</code>.
+    </p>
+  </main>
+
+  <script src="data/my-travels.js"></script>
+  <script src="js/continents.js"></script>
+  <script src="js/parks.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/visited.js"></script>
+</body>
+</html>
