@@ -9,6 +9,6 @@
 // Leave empty and the app runs in local-only mode, same as before.
 
 window.SUPABASE_CONFIG = {
-  url: "",
-  anonKey: "",
+  url: "https://tmckvxadcizxvslvlxic.supabase.co",
+  anonKey: "sb_publishable_RctpTKhVIW6DmZaji-jnyA_JFgpbxQm",
 };
