@@ -47,6 +47,7 @@ window.Store = (() => {
     const statuses = window.US_STATES.concat(window.US_EXTRAS).map((s) => raw("states", s));
     if (statuses.includes("lived")) return "lived";
     if (statuses.includes("visited")) return "visited";
+    if (statuses.includes("want")) return "want";
     return null;
   }
 
@@ -54,7 +55,8 @@ window.Store = (() => {
     return type === "countries" ? country(name) : raw(type, name);
   }
 
-  const CYCLE = { region: [null, "visited", "lived"], park: [null, "visited"] };
+  const CYCLE = { region: [null, "visited", "lived", "want"], park: [null, "visited", "want"] };
+  const BEEN = (s) => s === "visited" || s === "lived"; // "want" isn't been
 
   function cycle(type, name) {
     if (comparing) return null; // read-only while comparing
@@ -78,10 +80,10 @@ window.Store = (() => {
   function counts() {
     const names = Object.keys(window.COUNTRY_META);
     const sovereign = names.filter((n) => window.COUNTRY_META[n][2]);
-    const c = sovereign.filter((n) => country(n)).length;
-    const t = names.filter((n) => !window.COUNTRY_META[n][2] && country(n)).length;
-    const s = window.US_STATES.filter((n) => raw("states", n)).length;
-    const p = window.PARKS.filter((pk) => raw("parks", pk.name)).length;
+    const c = sovereign.filter((n) => BEEN(country(n))).length;
+    const t = names.filter((n) => !window.COUNTRY_META[n][2] && BEEN(country(n))).length;
+    const s = window.US_STATES.filter((n) => BEEN(raw("states", n))).length;
+    const p = window.PARKS.filter((pk) => raw("parks", pk.name) === "visited").length;
     return {
       countries: c, countriesTotal: sovereign.length, territories: t,
       states: s, statesTotal: window.US_STATES.length,
@@ -289,13 +291,13 @@ window.Store = (() => {
     doc = doc || {};
     const c = doc.countries || {}, s = doc.states || {}, p = doc.parks || {};
     const sovereign = Object.keys(window.COUNTRY_META).filter((n) => window.COUNTRY_META[n][2]);
-    let countries = sovereign.filter((n) => c[n]).length;
-    const usFromStates = window.US_STATES.concat(window.US_EXTRAS).some((n) => s[n]);
-    if (usFromStates && !c["United States of America"]) countries += 1;
+    let countries = sovereign.filter((n) => BEEN(c[n])).length;
+    const usFromStates = window.US_STATES.concat(window.US_EXTRAS).some((n) => BEEN(s[n]));
+    if (usFromStates && !BEEN(c["United States of America"])) countries += 1;
     return {
       countries,
-      states: window.US_STATES.filter((n) => s[n]).length,
-      parks: Object.keys(p).length,
+      states: window.US_STATES.filter((n) => BEEN(s[n])).length,
+      parks: Object.values(p).filter((v) => v === "visited").length,
     };
   }
 
@@ -305,18 +307,19 @@ window.Store = (() => {
     const explicit = (doc.countries || {})[name];
     if (name !== "United States of America" || explicit) return explicit || null;
     const s = doc.states || {};
-    return window.US_STATES.concat(window.US_EXTRAS).some((n) => s[n]) ? "visited" : null;
+    return window.US_STATES.concat(window.US_EXTRAS).some((n) => BEEN(s[n])) ? "visited" : null;
   }
 
   function docStatus(doc, type, name) {
     return type === "countries" ? docCountry(doc, name) : (doc[type] || {})[name] || null;
   }
 
-  // "both" | "a" | "b" | null for the active comparison.
+  // "both" | "a" | "b" | null for the active comparison. Wishlist
+  // ("want") doesn't count as having been somewhere.
   function compareStatus(type, name) {
     if (!comparing) return null;
-    const a = docStatus(comparing.a.doc, type, name);
-    const b = docStatus(comparing.b.doc, type, name);
+    const a = BEEN(docStatus(comparing.a.doc, type, name));
+    const b = BEEN(docStatus(comparing.b.doc, type, name));
     if (a && b) return "both";
     if (a) return "a";
     if (b) return "b";

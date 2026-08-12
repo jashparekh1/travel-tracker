@@ -33,6 +33,7 @@
       const s = Store.get(el.dataset.type, el.dataset.name);
       el.classList.toggle("visited", s === "visited");
       el.classList.toggle("lived", s === "lived");
+      el.classList.toggle("want", s === "want");
     });
   }
 
@@ -123,11 +124,12 @@
 
   function refreshParks() {
     document.querySelectorAll(".park-tile").forEach((tile) => {
-      const visited = !!Store.get("parks", tile.dataset.park);
-      tile.classList.toggle("visited", visited);
+      const s = Store.get("parks", tile.dataset.park);
+      tile.classList.toggle("visited", s === "visited");
       const btn = tile.querySelector(".toggle-visited");
-      btn.textContent = visited ? "✓ Visited" : "Mark as visited";
-      btn.classList.toggle("is-visited", visited);
+      btn.textContent = s === "visited" ? "✓ Visited" : s === "want" ? "✈️ Want to go" : "Mark as visited";
+      btn.classList.toggle("is-visited", s === "visited");
+      btn.classList.toggle("is-want", s === "want");
     });
   }
 
@@ -142,9 +144,9 @@
     document.getElementById("stats-countries").innerHTML =
       `Visited <b>${c.countries}</b> of <b>${c.countriesTotal}</b> countries` +
       (c.territories ? ` (plus <b>${c.territories}</b> territories)` : "") +
-      `. Click to cycle: not yet → visited → lived.`;
+      `. Click to cycle: not yet → visited → lived → want to go.`;
     document.getElementById("stats-states").innerHTML =
-      `Visited <b>${c.states}</b> of <b>${c.statesTotal}</b> states. Click to cycle: not yet → visited → lived.`;
+      `Visited <b>${c.states}</b> of <b>${c.statesTotal}</b> states. Click to cycle: not yet → visited → lived → want to go.`;
     document.getElementById("stats-parks").innerHTML =
       `Visited <b>${c.parks}</b> of <b>${c.parksTotal}</b> national parks.`;
   }

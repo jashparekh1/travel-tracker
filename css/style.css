@@ -10,6 +10,7 @@
   --ocean: #101830;
   --visited: #f59e0b;
   --lived: #22c55e;
+  --want: #7dd3fc;
   --accent: #60a5fa;
 }
 
@@ -142,6 +143,7 @@ body.page .topbar { position: sticky; }
 .status-none { fill: var(--land); }
 .status-visited { fill: var(--visited); }
 .status-lived { fill: var(--lived); }
+.status-want { fill: var(--want); }
 
 /* Compare mode: blue = both, orange = person A, green = person B */
 .cmp-none { fill: var(--land); }
@@ -176,10 +178,10 @@ body.page .topbar { position: sticky; }
   stroke-width: 2.5px;
 }
 svg.parks-mode .park-label { display: block; }
-.park.visited .pin-body { fill: #ef4444; }
-.park:not(.visited) .pin-body { fill: #7c8db0; }
-/* Compare colors must come after the :not(.visited) gray rule — equal
-   specificity, so source order decides. */
+.park .pin-body { fill: #7c8db0; }
+.park.st-visited .pin-body { fill: #ef4444; }
+.park.st-want .pin-body { fill: var(--want); }
+/* Compare colors come after the status rules — source order wins. */
 .park.cmp-both .pin-body { fill: var(--accent); }
 .park.cmp-a .pin-body { fill: var(--visited); }
 .park.cmp-b .pin-body { fill: var(--lived); }
@@ -283,6 +285,7 @@ button.toggle-visited {
   cursor: pointer;
 }
 button.toggle-visited.is-visited { background: var(--visited); border-color: var(--visited); color: #1a1203; font-weight: 600; }
+button.toggle-visited.is-want { background: var(--want); border-color: var(--want); color: #082030; font-weight: 600; }
 
 /* ---------- account modal ---------- */
 .modal-backdrop {
@@ -406,6 +409,8 @@ h2.continent {
 .chip.visited .dot { background: var(--visited); }
 .chip.lived { border-color: color-mix(in srgb, var(--lived) 55%, transparent); }
 .chip.lived .dot { background: var(--lived); }
+.chip.want { border-color: color-mix(in srgb, var(--want) 55%, transparent); }
+.chip.want .dot { background: var(--want); }
 
 /* park cards grid */
 .park-grid {

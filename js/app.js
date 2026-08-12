@@ -136,7 +136,7 @@
       .attr("class", (d) => "state " +
         (viewMode === "all" ? regionClass("states", d.properties.name) : "status-none"));
     parkPins.attr("class", (d) => "park " +
-      (cmp ? compareClass("parks", d.name) : (Store.get("parks", d.name) ? "visited" : "")));
+      (cmp ? compareClass("parks", d.name) : "st-" + (Store.get("parks", d.name) || "none")));
 
     // The compare legend (with its title + exit button) replaces the
     // default legend while comparing.
@@ -267,10 +267,11 @@
   }
   function hideTooltip() { tooltip.style.display = "none"; }
 
+  const STATUS_LABEL = {
+    lived: "Lived here", visited: "Visited", want: "Want to go ✈️", none: "Not visited yet",
+  };
   function regionTooltip(type, name) {
-    const s = Store.get(type, name);
-    const label = s === "lived" ? "Lived here" : s === "visited" ? "Visited" : "Not visited yet";
-    return `${label} · click to change`;
+    return `${STATUS_LABEL[Store.get(type, name) || "none"]} · click to change`;
   }
 
   const countrySub = (n) => {
@@ -324,10 +325,14 @@
 
   function renderCardButton(park) {
     const btn = card.querySelector(".toggle-visited");
-    const visited = !!Store.get("parks", park.name);
+    const s = Store.get("parks", park.name);
     btn.disabled = !!Store.comparing();
-    btn.textContent = Store.comparing() ? "Compare mode" : visited ? "✓ Visited" : "Mark as visited";
-    btn.classList.toggle("is-visited", visited && !Store.comparing());
+    btn.textContent = Store.comparing() ? "Compare mode"
+      : s === "visited" ? "✓ Visited"
+      : s === "want" ? "✈️ Want to go"
+      : "Mark as visited";
+    btn.classList.toggle("is-visited", s === "visited" && !Store.comparing());
+    btn.classList.toggle("is-want", s === "want" && !Store.comparing());
     btn.onclick = () => { Store.cycle("parks", park.name); renderCardButton(park); };
   }
 
@@ -350,7 +355,7 @@
     .on("mousemove", (event, d) => {
       event.stopPropagation();
       const sub = Store.comparing() ? compareSub("parks", d.name)
-        : (Store.get("parks", d.name) ? "Visited" : "Not visited yet") + " · click for details";
+        : STATUS_LABEL[Store.get("parks", d.name) || "none"] + " · click for details";
       showTooltip(event, d.name + " National Park", sub);
     })
     .on("mouseout", hideTooltip)
