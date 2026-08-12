@@ -20,7 +20,8 @@
   function chip(type, name, label) {
     const el = document.createElement("button");
     el.className = "chip";
-    el.innerHTML = `<span class="dot"></span><span>${label || name}</span>`;
+    const flag = flagImg(type, name) || `<span class="dot"></span>`;
+    el.innerHTML = `${flag}<span>${label || name}</span>`;
     el.onclick = () => Store.cycle(type, name);
     el.dataset.type = type;
     el.dataset.name = name;
@@ -35,22 +36,35 @@
     });
   }
 
-  // ---- countries tab ----
+  // ---- countries tab: sovereign countries first, territories below ----
   const byContinent = {};
-  for (const [name, cont] of Object.entries(window.CONTINENTS)) {
-    (byContinent[cont] = byContinent[cont] || []).push(name);
+  for (const [name, meta] of Object.entries(window.COUNTRY_META)) {
+    const bucket = (byContinent[meta[0]] = byContinent[meta[0]] || { sov: [], terr: [] });
+    (meta[2] ? bucket.sov : bucket.terr).push(name);
   }
+  const alpha = (a, b) => displayName(a).localeCompare(displayName(b));
   const contRoot = document.getElementById("continent-lists");
   for (const cont of CONTINENT_ORDER) {
-    const names = (byContinent[cont] || []).sort((a, b) => displayName(a).localeCompare(displayName(b)));
+    const bucket = byContinent[cont];
+    if (!bucket) continue;
     const h = document.createElement("h2");
     h.className = "continent";
     h.textContent = cont;
     contRoot.appendChild(h);
     const grid = document.createElement("div");
     grid.className = "chip-grid";
-    names.forEach((n) => grid.appendChild(chip("countries", n, displayName(n))));
+    bucket.sov.sort(alpha).forEach((n) => grid.appendChild(chip("countries", n, displayName(n))));
     contRoot.appendChild(grid);
+    if (bucket.terr.length) {
+      const th = document.createElement("h3");
+      th.className = "territories";
+      th.textContent = "Territories & dependencies";
+      contRoot.appendChild(th);
+      const tgrid = document.createElement("div");
+      tgrid.className = "chip-grid terr";
+      bucket.terr.sort(alpha).forEach((n) => tgrid.appendChild(chip("countries", n, displayName(n))));
+      contRoot.appendChild(tgrid);
+    }
   }
 
   // ---- states tab ----
@@ -121,11 +135,14 @@
   function refreshStats() {
     const c = Store.counts();
     document.getElementById("stats").innerHTML =
-      `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries</span>` +
+      `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
+      (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
       `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>`;
     document.getElementById("stats-countries").innerHTML =
-      `Visited <b>${c.countries}</b> of <b>${c.countriesTotal}</b> countries & territories. Click to cycle: not yet → visited → lived.`;
+      `Visited <b>${c.countries}</b> of <b>${c.countriesTotal}</b> countries` +
+      (c.territories ? ` (plus <b>${c.territories}</b> territories)` : "") +
+      `. Click to cycle: not yet → visited → lived.`;
     document.getElementById("stats-states").innerHTML =
       `Visited <b>${c.states}</b> of <b>${c.statesTotal}</b> states. Click to cycle: not yet → visited → lived.`;
     document.getElementById("stats-parks").innerHTML =

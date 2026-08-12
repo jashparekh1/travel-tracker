@@ -21,7 +21,7 @@
   const PARK_ZOOM = 1.5; // pins appear past this zoom level
 
   const [world, statesGeo] = await Promise.all([
-    d3.json("data/countries-110m.json"),
+    d3.json("data/countries-50m.json"),
     d3.json("data/us-states.json"),
   ]);
   const countries = topojson.feature(world, world.objects.countries).features;
@@ -76,7 +76,8 @@
   function updateStats() {
     const c = Store.counts();
     document.getElementById("stats").innerHTML =
-      `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries</span>` +
+      `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
+      (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
       `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>`;
   }
@@ -143,7 +144,7 @@
   countryPaths
     .on("mousemove", (event, d) => {
       const n = d.properties.name;
-      showTooltip(event, displayName(n),
+      showTooltip(event, flagImg("countries", n) + displayName(n),
         n === "United States of America" ? "Click your states instead" : regionTooltip("countries", n));
     })
     .on("mouseout", hideTooltip)
@@ -152,16 +153,16 @@
       const n = d.properties.name;
       if (n === "United States of America") return; // states handle the US
       Store.cycle("countries", n);
-      showTooltip(event, displayName(n), regionTooltip("countries", n));
+      showTooltip(event, flagImg("countries", n) + displayName(n), regionTooltip("countries", n));
     });
 
   statePaths
-    .on("mousemove", (event, d) => showTooltip(event, d.properties.name, regionTooltip("states", d.properties.name)))
+    .on("mousemove", (event, d) => showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, regionTooltip("states", d.properties.name)))
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
       if (dragMoved) return;
       Store.cycle("states", d.properties.name);
-      showTooltip(event, d.properties.name, regionTooltip("states", d.properties.name));
+      showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, regionTooltip("states", d.properties.name));
     });
 
   // ---- park card ----

@@ -60,12 +60,14 @@ window.Store = (() => {
   }
 
   function counts() {
-    const countryNames = Object.keys(window.CONTINENTS);
-    const c = countryNames.filter((n) => country(n)).length;
+    const names = Object.keys(window.COUNTRY_META);
+    const sovereign = names.filter((n) => window.COUNTRY_META[n][2]);
+    const c = sovereign.filter((n) => country(n)).length;
+    const t = names.filter((n) => !window.COUNTRY_META[n][2] && country(n)).length;
     const s = window.US_STATES.filter((n) => raw("states", n)).length;
     const p = window.PARKS.filter((pk) => raw("parks", pk.name)).length;
     return {
-      countries: c, countriesTotal: countryNames.length,
+      countries: c, countriesTotal: sovereign.length, territories: t,
       states: s, statesTotal: window.US_STATES.length,
       parks: p, parksTotal: window.PARKS.length,
     };
@@ -74,7 +76,7 @@ window.Store = (() => {
   // Merged snapshot (no nulls) for export.
   function merged() {
     const out = { countries: {}, states: {}, parks: {} };
-    for (const n of Object.keys(window.CONTINENTS)) {
+    for (const n of Object.keys(window.COUNTRY_META)) {
       const v = raw("countries", n);
       if (v) out.countries[n] = v;
     }

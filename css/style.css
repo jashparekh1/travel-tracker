@@ -75,9 +75,30 @@ body.page .topbar { position: sticky; }
 
 .park { cursor: pointer; }
 .park .pin-body { stroke: #0b1020; stroke-width: 1; }
-.park.visited .pin-body { fill: var(--visited); }
+.park.visited .pin-body { fill: #ef4444; }
 .park:not(.visited) .pin-body { fill: #7c8db0; }
 .park:hover .pin-body { stroke: #fff; }
+
+.flag {
+  width: 20px;
+  height: auto;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #0006;
+  flex: none;
+}
+#tooltip .flag { width: 18px; vertical-align: -3px; margin-right: 6px; }
+.stats i { font-style: normal; color: var(--muted); font-size: 11.5px; }
+
+h3.territories {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7894;
+  margin: 12px 0 8px;
+  font-weight: 600;
+}
+.chip-grid.terr .chip { opacity: 0.85; font-size: 12px; padding: 5px 11px; }
+.chip-grid.terr .flag { width: 17px; }
 
 /* ---------- floating UI ---------- */
 .legend {
