@@ -18,7 +18,7 @@
 
   const path = d3.geoPath(projection);
   let zoomK = 1;
-  const PARK_ZOOM = 1.5; // pins appear past this zoom level
+  const PARK_ZOOM = 2.5; // pins appear past this zoom level
 
   const [world, statesGeo, lakesGeo, citiesRaw] = await Promise.all([
     d3.json("data/countries-50m.json"),
@@ -84,6 +84,8 @@
     .attr("class", "park");
   parkPins.append("path").attr("class", "pin-body").attr("d", PIN);
   parkPins.append("circle").attr("cy", -16).attr("r", 3).attr("fill", "#0b1020");
+  parkPins.append("text").attr("class", "park-label")
+    .attr("x", 8).attr("y", -13).text((d) => d.name);
 
   // Some polygons (e.g. Siachen Glacier) track as part of another country.
   const countryName = (d) => window.MERGED_INTO[d.properties.name] || d.properties.name;
@@ -129,16 +131,16 @@
     parkPins.attr("class", (d) => "park " +
       (cmp ? compareClass("parks", d.name) : (Store.get("parks", d.name) ? "visited" : "")));
 
-    // Legend + banner follow compare state.
+    // The compare legend (with its title + exit button) replaces the
+    // default legend while comparing.
     document.getElementById("legend-default").style.display = cmp ? "none" : "grid";
     document.getElementById("legend-compare").style.display = cmp ? "grid" : "none";
-    const banner = document.getElementById("compare-banner");
-    banner.style.display = cmp ? "flex" : "none";
     if (cmp) {
       document.getElementById("compare-name").textContent = `${cmp.a} vs ${cmp.b}`;
       document.getElementById("legend-a-name").textContent = cmp.a;
       document.getElementById("legend-b-name").textContent = cmp.b;
     }
+    svg.classed("parks-mode", viewMode === "parks");
     updateStats();
   }
 
@@ -180,7 +182,7 @@
     }
     citiesShown = anyCities;
     if (showParks || parksShown) {
-      const pinScale = Math.min(1.6, 0.85 + 0.25 * Math.log2(zoomK));
+      const pinScale = Math.max(0.5, Math.min(1.1, 0.45 + 0.18 * Math.log2(zoomK)));
       parkPins.attr("display", (d) => {
         if (!showParks) return "none";
         return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.45 ? "none" : null;
@@ -188,6 +190,8 @@
         const p = projection([d.lon, d.lat]);
         return p ? `translate(${p[0]},${p[1]}) scale(${pinScale})` : null;
       });
+      // Labels keep a constant on-screen size despite the pin scaling.
+      parkPins.select("text.park-label").attr("transform", `scale(${1 / pinScale})`);
     }
     parksShown = showParks;
     document.getElementById("park-hint").style.display =

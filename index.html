@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>My Travels</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
   <div class="topbar">
@@ -43,15 +43,14 @@
   </div>
 
   <div class="legend" id="legend-compare" style="display: none">
+    <div class="row cmp-head">
+      <b id="compare-name"></b>
+      <button class="btn small" id="compare-exit">Exit</button>
+    </div>
     <div class="row"><span class="swatch" style="background: var(--accent)"></span> Both</div>
     <div class="row"><span class="swatch" style="background: var(--visited)"></span> Only <span id="legend-a-name"></span></div>
     <div class="row"><span class="swatch" style="background: var(--lived)"></span> Only <span id="legend-b-name"></span></div>
     <div class="row"><span class="swatch" style="background: var(--land)"></span> Neither</div>
-  </div>
-
-  <div id="compare-banner" style="display: none">
-    <b id="compare-name"></b>
-    <button class="btn small" id="compare-exit">Exit compare</button>
   </div>
 
   <div id="compare-modal" class="modal-backdrop">
@@ -105,6 +104,6 @@
   <script src="js/account.js?v=2"></script>
   <script src="js/friends.js?v=2"></script>
   <script src="js/compare.js?v=2"></script>
-  <script src="js/app.js?v=4"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>
