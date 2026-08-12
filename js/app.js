@@ -20,9 +20,10 @@
   let zoomK = 1;
   const PARK_ZOOM = 1.5; // pins appear past this zoom level
 
-  const [world, statesGeo, citiesRaw] = await Promise.all([
+  const [world, statesGeo, lakesGeo, citiesRaw] = await Promise.all([
     d3.json("data/countries-50m.json"),
     d3.json("data/us-states.json"),
+    d3.json("data/lakes-50m.json"),
     d3.json("data/cities.json"),
   ]);
   const cities = citiesRaw.map(([name, lat, lon, rank, cap]) => ({ name, lat, lon, rank, cap }));
@@ -45,6 +46,13 @@
 
   // Outlines on top of all fills: borders between countries, then
   // coastlines/continent edges (slightly brighter).
+  // Lakes render as water above the land fills — the country polygons
+  // include lake areas (Great Lakes etc.) which would otherwise take on
+  // the country's status color.
+  const lakePaths = svg.append("g").selectAll("path")
+    .data(lakesGeo.features).join("path")
+    .attr("class", "lake");
+
   const mergedPair = (a, b) =>
     window.MERGED_INTO[a.properties.name] === b.properties.name ||
     window.MERGED_INTO[b.properties.name] === a.properties.name;
@@ -89,8 +97,16 @@
   }
 
   function recolor() {
-    countryPaths.attr("class", (d) => "country " +
-      (viewMode === "parks" ? "status-none" : statusClass("countries", countryName(d))));
+    countryPaths.attr("class", (d) => {
+      const n = countryName(d);
+      // In All view the states layer carries the US's color; painting the
+      // country polygon too bleeds through lake cutouts and coastline
+      // fringes the state shapes don't exactly cover.
+      const cls = viewMode === "parks" ? "status-none"
+        : viewMode === "all" && n === "United States of America" ? "status-none"
+        : statusClass("countries", n);
+      return "country " + cls;
+    });
     statePaths
       .attr("display", viewMode === "all" ? null : "none")
       .attr("class", (d) => "state " + statusClass("states", d.properties.name));
@@ -112,6 +128,7 @@
     svg.selectAll("path.sphere, path.graticule, path.borders, path.coastline").attr("d", path);
     countryPaths.attr("d", path);
     statePaths.attr("d", path);
+    lakePaths.attr("d", path);
 
     const showParks = viewMode === "parks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
     const [cx, cy] = [-projection.rotate()[0], -projection.rotate()[1]];
