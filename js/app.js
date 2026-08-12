@@ -129,9 +129,12 @@
         : regionClass("countries", n);
       return "country " + cls;
     });
+    // States: colored in All view, outline-only in Parks view, hidden in
+    // Countries view.
     statePaths
-      .attr("display", viewMode === "all" ? null : "none")
-      .attr("class", (d) => "state " + regionClass("states", d.properties.name));
+      .attr("display", viewMode === "countries" ? "none" : null)
+      .attr("class", (d) => "state " +
+        (viewMode === "all" ? regionClass("states", d.properties.name) : "status-none"));
     parkPins.attr("class", (d) => "park " +
       (cmp ? compareClass("parks", d.name) : (Store.get("parks", d.name) ? "visited" : "")));
 
@@ -176,15 +179,16 @@
   function render() {
     svg.selectAll("path.sphere, path.graticule, path.borders, path.coastline").attr("d", path);
     countryPaths.attr("d", path);
-    if (viewMode === "all") statePaths.attr("d", path);
+    if (viewMode !== "countries") statePaths.attr("d", path);
     lakePaths.attr("d", path);
 
     const showParks = viewMode === "parks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
     const [cx, cy] = [-projection.rotate()[0], -projection.rotate()[1]];
 
-    const anyCities = zoomK >= CITY_ZOOM[0];
+    const anyCities = viewMode !== "parks" && zoomK >= CITY_ZOOM[0];
     if (anyCities || citiesShown) {
       cityNodes.attr("display", (d) => {
+        if (!anyCities) return "none";
         const minZoom = CITY_ZOOM[d.cap ? Math.min(d.rank, 1) : d.rank];
         if (zoomK < minZoom) return "none";
         return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.4 ? "none" : null;
@@ -290,12 +294,14 @@
       showTooltip(event, flagImg("countries", n) + displayName(n), countrySub(n));
     });
 
-  const stateSub = (n) => Store.comparing() ? compareSub("states", n) : regionTooltip("states", n);
+  const stateSub = (n) => Store.comparing() ? compareSub("states", n)
+    : viewMode !== "all" ? "parks view — switch to All to edit"
+    : regionTooltip("states", n);
   statePaths
     .on("mousemove", (event, d) => showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, stateSub(d.properties.name)))
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
-      if (dragMoved) return;
+      if (dragMoved || viewMode !== "all") return;
       Store.cycle("states", d.properties.name);
       showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, stateSub(d.properties.name));
     });
