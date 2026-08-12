@@ -202,27 +202,37 @@
     requestAnimationFrame(() => { renderQueued = false; render(); });
   }
 
-  // ---- interaction: rotate (drag) + zoom (wheel/pinch) ----
+  // ---- interaction: one unified gesture handler ----
+  // Drag (mouse or one finger) rotates; wheel / two-finger pinch zooms.
+  // A single d3.zoom owns all gestures — splitting drag and zoom across
+  // two handlers breaks pinch on touch screens.
   let dragMoved = false;
-  svg.call(d3.drag()
-    .on("start", () => { dragMoved = false; hideTooltip(); })
-    .on("drag", (event) => {
-      if (Math.abs(event.dx) + Math.abs(event.dy) > 0) dragMoved = true;
-      const k = 75 / projection.scale();
-      const r = projection.rotate();
-      projection.rotate([r[0] + event.dx * k, Math.max(-90, Math.min(90, r[1] - event.dy * k))]);
-      requestRender();
-    }));
+  let programmaticZoom = false;
+  let lastTransform = d3.zoomIdentity;
 
   const zoom = d3.zoom()
     .scaleExtent([1, 24])
-    .filter((event) => event.type === "wheel" || event.type === "dblclick" || (event.touches && event.touches.length > 1))
+    .on("start", () => { dragMoved = false; hideTooltip(); })
     .on("zoom", (event) => {
-      zoomK = event.transform.k;
-      projection.scale(baseScale() * zoomK);
+      const t = event.transform;
+      if (programmaticZoom) { lastTransform = t; return; }
+      if (t.k !== lastTransform.k) {
+        // Pinch or wheel: change zoom level.
+        zoomK = t.k;
+        projection.scale(baseScale() * zoomK);
+      } else {
+        // Pan: rotate the globe.
+        const dx = t.x - lastTransform.x;
+        const dy = t.y - lastTransform.y;
+        if (Math.abs(dx) + Math.abs(dy) > 1) dragMoved = true;
+        const k = 75 / projection.scale();
+        const r = projection.rotate();
+        projection.rotate([r[0] + dx * k, Math.max(-90, Math.min(90, r[1] - dy * k))]);
+      }
+      lastTransform = t;
       requestRender();
     });
-  svg.call(zoom);
+  svg.call(zoom).on("dblclick.zoom", null);
 
   // ---- tooltip ----
   function showTooltip(event, name, sub) {
@@ -353,8 +363,13 @@
     if (confirm("Discard local edits and go back to the committed data file?")) Store.clearLocal();
   };
   document.getElementById("btn-reset").onclick = () => {
-    projection.rotate([95, -38]);
-    svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
+    programmaticZoom = true;
+    svg.call(zoom.transform, d3.zoomIdentity);
+    programmaticZoom = false;
+    lastTransform = d3.zoomIdentity;
+    zoomK = 1;
+    projection.rotate([95, -38]).scale(baseScale());
+    render();
   };
 
   window.addEventListener("resize", () => {
