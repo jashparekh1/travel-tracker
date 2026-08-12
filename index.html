@@ -18,6 +18,7 @@
       <button data-mode="parks">Parks</button>
     </div>
     <a href="visited.html">Visited lists →</a>
+    <button class="btn" id="btn-account">Sign in</button>
     <button class="btn" id="btn-reset">Reset view</button>
     <button class="btn" id="btn-export" title="Download my-travels.js to commit to git">Export</button>
     <button class="btn" id="btn-clear" title="Drop browser edits, back to the committed file">Clear local edits</button>
@@ -35,6 +36,14 @@
 
   <div id="tooltip"></div>
 
+  <div id="account-modal" class="modal-backdrop">
+    <div class="modal">
+      <button class="close" id="account-close">✕</button>
+      <h3>Account</h3>
+      <div id="account-body"></div>
+    </div>
+  </div>
+
   <div id="park-card">
     <button class="close">✕</button>
     <div class="photo">🏞️</div>
@@ -50,11 +59,14 @@
 
   <script src="vendor/d3.v7.min.js"></script>
   <script src="vendor/topojson-client.min.js"></script>
+  <script src="vendor/supabase.min.js"></script>
+  <script src="js/supabase-config.js"></script>
   <script src="data/my-travels.js"></script>
   <script src="js/countries-meta.js"></script>
   <script src="js/continents.js"></script>
   <script src="js/parks.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/account.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

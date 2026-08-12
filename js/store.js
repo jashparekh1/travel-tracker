@@ -1,13 +1,15 @@
-// Data store: seed file (data/my-travels.js) + localStorage overrides.
+// Data store: seed file + localStorage overrides + optional Supabase cloud.
 //
-// Clicks in the UI write explicit overrides ("visited" | "lived" | "none")
-// to localStorage; anything without an override falls through to the seed.
-// "Export" downloads the merged result as a new my-travels.js so it can be
-// committed to git.
+// Status lookup order: local override -> cloud document -> seed file.
+// Signed out (or Supabase unconfigured), it behaves exactly like before:
+// clicks -> localStorage, Export -> committable file.
+// Signed in, the cloud document is authoritative: it replaces the local
+// view on sign-in, and every change is pushed (debounced) to Supabase.
 
 window.Store = (() => {
   const KEY = "travel-tracker-overrides-v1";
-  const seed = window.SEED_TRAVELS || { countries: {}, states: {}, parks: {} };
+  const TYPES = ["countries", "states", "parks"];
+  const seed = window.SEED_TRAVELS || {};
 
   let overrides;
   try {
@@ -15,20 +17,26 @@ window.Store = (() => {
   } catch (e) {
     overrides = {};
   }
-  for (const k of ["countries", "states", "parks"]) {
+  for (const k of TYPES) {
     overrides[k] = overrides[k] || {};
     seed[k] = seed[k] || {};
   }
 
+  let remote = null; // full doc from Supabase; authoritative when present
+
   const listeners = [];
+  const syncListeners = [];
   const notify = () => listeners.forEach((cb) => cb());
+  let syncState = "local"; // local | signedout | saving | synced | error
+  const setSync = (s) => { syncState = s; syncListeners.forEach((cb) => cb(s)); };
   const save = () => localStorage.setItem(KEY, JSON.stringify(overrides));
 
-  // Raw status lookup: override wins, else seed, else null.
+  // Raw status lookup.
   function raw(type, name) {
     const o = overrides[type][name];
     if (o !== undefined) return o === "none" ? null : o;
-    return (seed[type] && seed[type][name]) || null;
+    if (remote) return (remote[type] && remote[type][name]) || null;
+    return seed[type][name] || null;
   }
 
   // Country status; the US is derived from its states unless set explicitly.
@@ -52,6 +60,7 @@ window.Store = (() => {
     const next = order[(order.indexOf(raw(type, name)) + 1) % order.length];
     overrides[type][name] = next === null ? "none" : next;
     save();
+    schedulePush();
     notify();
     return next;
   }
@@ -59,6 +68,7 @@ window.Store = (() => {
   function set(type, name, status) {
     overrides[type][name] = status === null ? "none" : status;
     save();
+    schedulePush();
     notify();
   }
 
@@ -76,7 +86,7 @@ window.Store = (() => {
     };
   }
 
-  // Merged snapshot (no nulls) for export.
+  // Merged snapshot (no nulls) — used for export and cloud pushes.
   function merged() {
     const out = { countries: {}, states: {}, parks: {} };
     for (const n of Object.keys(window.COUNTRY_META)) {
@@ -113,8 +123,118 @@ window.Store = (() => {
     location.reload();
   }
 
+  // ---------------- cloud (Supabase) ----------------
+  let client = null;
+  let user = null;
+  let pushTimer = null;
+
+  const cloudEnabled = () => !!client;
+
+  async function initCloud() {
+    const cfg = window.SUPABASE_CONFIG;
+    if (!cfg || !cfg.url || !cfg.anonKey || !window.supabase) return;
+    client = window.supabase.createClient(cfg.url, cfg.anonKey);
+    setSync("signedout");
+    const { data } = await client.auth.getSession();
+    await handleUser(data.session ? data.session.user : null);
+    client.auth.onAuthStateChange((_event, session) => {
+      const next = session ? session.user : null;
+      if ((next && next.id) !== (user && user.id)) handleUser(next);
+    });
+  }
+
+  async function handleUser(u) {
+    user = u;
+    if (!user) {
+      remote = null;
+      setSync(client ? "signedout" : "local");
+      notify();
+      return;
+    }
+    setSync("saving");
+    const { data, error } = await client
+      .from("travels").select("data").eq("user_id", user.id).maybeSingle();
+    if (error) {
+      setSync("error");
+      return;
+    }
+    if (data) {
+      // Cloud is the base; any local edits made while signed out are
+      // layered on top and immediately pushed (push() then clears them).
+      remote = data.data || {};
+      for (const k of TYPES) remote[k] = remote[k] || {};
+      if (TYPES.some((k) => Object.keys(overrides[k]).length)) await push();
+      else setSync("synced");
+    } else {
+      // First sign-in: current local state becomes the cloud document.
+      remote = null;
+      await push();
+    }
+    notify();
+  }
+
+  async function push() {
+    if (!client || !user) return;
+    setSync("saving");
+    const doc = merged();
+    const { error } = await client.from("travels").upsert({
+      user_id: user.id, data: doc, updated_at: new Date().toISOString(),
+    });
+    if (error) {
+      setSync("error");
+      return;
+    }
+    // Fold what we just pushed into the remote layer and drop overrides.
+    remote = doc;
+    for (const k of TYPES) overrides[k] = {};
+    save();
+    setSync("synced");
+  }
+
+  function schedulePush() {
+    if (!client || !user) return;
+    clearTimeout(pushTimer);
+    setSync("saving");
+    pushTimer = setTimeout(push, 1200);
+  }
+
+  async function signIn(email, password) {
+    const { error } = await client.auth.signInWithPassword({ email, password });
+    return error ? error.message : null;
+  }
+
+  async function signUp(email, password) {
+    const { data, error } = await client.auth.signUp({ email, password });
+    if (error) return error.message;
+    if (data.user && !data.session) {
+      return "Account created — check your email to confirm, then sign in.";
+    }
+    return null;
+  }
+
+  async function signInGoogle() {
+    const { error } = await client.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: location.origin + location.pathname },
+    });
+    return error ? error.message : null;
+  }
+
+  async function signOut() {
+    await client.auth.signOut();
+  }
+
+  initCloud();
+
   return {
     get, cycle, set, counts, exportFile, clearLocal,
     onChange: (cb) => listeners.push(cb),
+    cloud: {
+      enabled: cloudEnabled,
+      user: () => user,
+      state: () => syncState,
+      onSync: (cb) => syncListeners.push(cb),
+      signIn, signUp, signInGoogle, signOut,
+    },
   };
 })();

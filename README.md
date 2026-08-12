@@ -43,6 +43,29 @@ python3 -m http.server 8000
 3. `Clear local edits` drops the browser overrides and goes back to whatever is
    in the committed file.
 
+## Accounts & cloud sync (Supabase, free)
+
+Optional — without it the app runs in local-only mode. With it, anyone can
+create an account and their map saves to the cloud and syncs across devices.
+
+Security notes: passwords go browser → Supabase directly (stored as salted
+hashes there); they never touch this repo or its owner. The `anonKey` below is
+public by design — row-level security in `supabase/schema.sql` is what keeps
+each user's data private to them.
+
+One-time setup:
+
+1. Create a free project at [supabase.com](https://supabase.com) (any name/region).
+2. SQL Editor → paste the contents of `supabase/schema.sql` → Run.
+3. Authentication → Sign In / Up → Email: turn **off** "Confirm email"
+   (skips the confirmation-email step; fine for friends & family).
+4. *(Optional, for "Continue with Google")*: Authentication → Sign In / Up →
+   Google → follow Supabase's guide to add a Google OAuth client ID/secret.
+   Also set Authentication → URL Configuration → Site URL to
+   `https://<username>.github.io/travel-tracker/`.
+5. Settings → API: copy the Project URL and anon public key into
+   `js/supabase-config.js`, commit, push.
+
 ## Free hosting on GitHub Pages
 
 ```sh
