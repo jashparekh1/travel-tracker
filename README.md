@@ -11,16 +11,12 @@ just a static site.
 - **US broken down by state**, drawn right on the globe
 - **All 63 national parks** as pins (zoom in on the US) — click one for a photo
   (pulled from Wikipedia, free) and a "mark as visited" button
-- **Provinces worldwide**: zoom into any country (India, China, Canada, Australia…)
-  and its first-level divisions appear — click to mark them; the country's color
-  derives from its marked provinces. ~4,500 provinces across 235 countries,
-  lazy-loaded one small file per country (built by `scripts/build-provinces.py`)
 - **Major cities** appear as labeled dots the deeper you zoom (importance-ranked
   by Natural Earth cartographers, capitals bolded) — display-only atlas dressing,
   built by `scripts/build-cities.py` (rank cutoff lives there)
 - **Visited page** with tabs: Countries (grouped by continent), US States,
   National Parks — with flags
-- Live stats: countries / states / parks / provinces counts
+- Live stats: countries / states / parks counts
 
 ## Running it
 

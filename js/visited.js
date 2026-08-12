@@ -138,8 +138,7 @@
       `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
       (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
-      `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>` +
-      (c.provinces ? `<span>🗺️ <b>${c.provinces}</b> provinces</span>` : "");
+      `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>`;
     document.getElementById("stats-countries").innerHTML =
       `Visited <b>${c.countries}</b> of <b>${c.countriesTotal}</b> countries` +
       (c.territories ? ` (plus <b>${c.territories}</b> territories)` : "") +
