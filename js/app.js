@@ -20,10 +20,12 @@
   let zoomK = 1;
   const PARK_ZOOM = 1.5; // pins appear past this zoom level
 
-  const [world, statesGeo] = await Promise.all([
+  const [world, statesGeo, citiesRaw] = await Promise.all([
     d3.json("data/countries-50m.json"),
     d3.json("data/us-states.json"),
+    d3.json("data/cities.json"),
   ]);
+  const cities = citiesRaw.map(([name, lat, lon, rank, cap]) => ({ name, lat, lon, rank, cap }));
   const countries = topojson.feature(world, world.objects.countries).features;
 
   // ---- layers (order = paint order) ----
@@ -99,6 +101,16 @@
     .attr("stroke-width", 0.9).attr("stroke-opacity", 0.9)
     .attr("pointer-events", "none");
 
+  // City labels: display-only atlas dressing, revealed progressively by
+  // importance rank. Never intercepts clicks (pointer-events: none).
+  const citiesLayer = svg.append("g").attr("class", "cities").attr("pointer-events", "none");
+  const CITY_ZOOM = [1.2, 1.6, 2.2, 3.2, 4.2]; // min zoom per rank 0..4
+  const cityNodes = citiesLayer.selectAll("g")
+    .data(cities).join("g")
+    .attr("class", (d) => "city" + (d.cap ? " capital" : ""));
+  cityNodes.append("circle").attr("r", (d) => (d.rank <= 1 ? 2.5 : 2));
+  cityNodes.append("text").attr("x", 5).attr("y", 3).text((d) => d.name);
+
   const parksLayer = svg.append("g");
   const PIN = "M0,0 C-5,-8 -9,-11 -9,-16 a9,9 0 1,1 18,0 C9,-11 5,-8 0,0 Z";
   const parkPins = parksLayer.selectAll("g")
@@ -147,6 +159,15 @@
 
     const showParks = zoomK >= PARK_ZOOM;
     const [cx, cy] = [-projection.rotate()[0], -projection.rotate()[1]];
+
+    cityNodes.attr("display", (d) => {
+      const minZoom = CITY_ZOOM[d.cap ? Math.min(d.rank, 1) : d.rank];
+      if (zoomK < minZoom) return "none";
+      return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.4 ? "none" : null;
+    }).attr("transform", (d) => {
+      const p = projection([d.lon, d.lat]);
+      return p ? `translate(${p[0]},${p[1]})` : null;
+    });
     const pinScale = Math.min(1.6, 0.85 + 0.25 * Math.log2(zoomK));
     parkPins.attr("display", (d) => {
       if (!showParks) return "none";

@@ -15,8 +15,11 @@ just a static site.
   and its first-level divisions appear — click to mark them; the country's color
   derives from its marked provinces. ~4,500 provinces across 235 countries,
   lazy-loaded one small file per country (built by `scripts/build-provinces.py`)
+- **Major cities** appear as labeled dots the deeper you zoom (importance-ranked
+  by Natural Earth cartographers, capitals bolded) — display-only atlas dressing,
+  built by `scripts/build-cities.py` (rank cutoff lives there)
 - **Visited page** with tabs: Countries (grouped by continent), US States,
-  Provinces, National Parks — with flags
+  National Parks — with flags
 - Live stats: countries / states / parks / provinces counts
 
 ## Running it
@@ -81,7 +84,6 @@ Next up (in rough order):
 
 Backlog:
 
-- Major world cities (pins, like parks)
 - Wonders of the world (pins with photos)
 - National parks of other countries (Patagonia, Banff, Kruger…)
 - Famous hiking destinations (Tour du Mont Blanc, Everest Base Camp, Annapurna…)

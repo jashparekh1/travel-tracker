@@ -78,6 +78,19 @@ body.page .topbar { position: sticky; }
 .province.status-none { fill: transparent; }
 .province:hover { stroke: #e8eefb; stroke-opacity: 1; stroke-width: 1; }
 
+/* City labels (display-only) */
+.city circle { fill: #dbe4f5; stroke: #0b1020; stroke-width: 1; }
+.city text {
+  font-size: 10px;
+  font-weight: 500;
+  fill: #c6d0e4;
+  paint-order: stroke;
+  stroke: #0b1020;
+  stroke-width: 2.5px;
+}
+.city.capital circle { fill: #fff; }
+.city.capital text { font-weight: 700; font-size: 10.5px; }
+
 .park { cursor: pointer; }
 .park .pin-body { stroke: #0b1020; stroke-width: 1; }
 .park.visited .pin-body { fill: #ef4444; }
