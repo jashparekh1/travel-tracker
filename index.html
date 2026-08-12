@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>My Travels</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
   <div class="topbar">
@@ -47,10 +47,11 @@
       <b id="compare-name"></b>
       <button class="btn small" id="compare-exit">Exit</button>
     </div>
-    <div class="row"><span class="swatch" style="background: var(--accent)"></span> Both</div>
-    <div class="row"><span class="swatch" style="background: var(--visited)"></span> Only <span id="legend-a-name"></span></div>
-    <div class="row"><span class="swatch" style="background: var(--lived)"></span> Only <span id="legend-b-name"></span></div>
+    <div class="row"><span class="swatch" style="background: var(--accent)"></span> Both <span class="cmp-count" id="cmp-count-both"></span></div>
+    <div class="row"><span class="swatch" style="background: var(--visited)"></span> Only <span id="legend-a-name"></span> <span class="cmp-count" id="cmp-count-a"></span></div>
+    <div class="row"><span class="swatch" style="background: var(--lived)"></span> Only <span id="legend-b-name"></span> <span class="cmp-count" id="cmp-count-b"></span></div>
     <div class="row"><span class="swatch" style="background: var(--land)"></span> Neither</div>
+    <div id="cmp-unit"></div>
   </div>
 
   <div id="compare-modal" class="modal-backdrop">
@@ -100,10 +101,10 @@
   <script src="js/countries-meta.js?v=2"></script>
   <script src="js/continents.js?v=2"></script>
   <script src="js/parks.js?v=2"></script>
-  <script src="js/store.js?v=2"></script>
+  <script src="js/store.js?v=3"></script>
   <script src="js/account.js?v=2"></script>
   <script src="js/friends.js?v=2"></script>
   <script src="js/compare.js?v=2"></script>
-  <script src="js/app.js?v=9"></script>
+  <script src="js/app.js?v=10"></script>
 </body>
 </html>

@@ -143,6 +143,15 @@
       document.getElementById("compare-name").textContent = `${cmp.a} vs ${cmp.b}`;
       document.getElementById("legend-a-name").textContent = cmp.a;
       document.getElementById("legend-b-name").textContent = cmp.b;
+      // Tallies for whatever the current view is showing.
+      const cc = Store.compareCounts();
+      const cat = viewMode === "parks" ? cc.parks : cc.countries;
+      document.getElementById("cmp-count-both").textContent = cat.both;
+      document.getElementById("cmp-count-a").textContent = cat.a;
+      document.getElementById("cmp-count-b").textContent = cat.b;
+      document.getElementById("cmp-unit").textContent =
+        viewMode === "parks" ? "counting national parks"
+        : `counting countries · states: ${cc.states.both} both, ${cc.states.a} / ${cc.states.b} only`;
     }
     svg.classed("parks-mode", viewMode === "parks");
     updateStats();

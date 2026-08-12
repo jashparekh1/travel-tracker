@@ -342,12 +342,31 @@ window.Store = (() => {
     notify();
   }
 
+  // Tallies for the compare legend: how many entities are both/a/b.
+  function compareCounts() {
+    if (!comparing) return null;
+    const count = (type, names) => {
+      const out = { both: 0, a: 0, b: 0 };
+      for (const n of names) {
+        const s = compareStatus(type, n);
+        if (s) out[s]++;
+      }
+      return out;
+    };
+    return {
+      countries: count("countries",
+        Object.keys(window.COUNTRY_META).filter((n) => window.COUNTRY_META[n][2])),
+      states: count("states", window.US_STATES),
+      parks: count("parks", window.PARKS.map((p) => p.name)),
+    };
+  }
+
   initCloud();
 
   return {
     get, cycle, set, counts, exportFile, clearLocal,
     onChange: (cb) => listeners.push(cb),
-    compareWith, compareOff, compareStatus,
+    compareWith, compareOff, compareStatus, compareCounts,
     comparing: () => (comparing ? { a: comparing.a.name, b: comparing.b.name } : null),
     myDoc: () => merged(),
     cloud: {
