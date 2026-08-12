@@ -64,10 +64,10 @@ body.page .topbar { position: sticky; }
 #globe { position: fixed; inset: 0; cursor: grab; }
 #globe:active { cursor: grabbing; }
 
-.country { stroke: var(--border); stroke-width: 0.5; }
-.state { stroke: var(--border); stroke-width: 0.4; }
+.country { stroke: none; }
+.state { stroke: #8fa3c7; stroke-opacity: 0.55; stroke-width: 0.5; }
 .country, .state { cursor: pointer; }
-.country:hover, .state:hover { stroke: #cbd5e1; stroke-width: 0.8; }
+.country:hover, .state:hover { stroke: #e8eefb; stroke-opacity: 1; stroke-width: 1; }
 
 .status-none { fill: var(--land); }
 .status-visited { fill: var(--visited); }

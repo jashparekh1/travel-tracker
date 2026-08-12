@@ -40,6 +40,19 @@
     .data(statesGeo.features).join("path")
     .attr("class", "state");
 
+  // Outlines on top of all fills: borders between countries, then
+  // coastlines/continent edges (slightly brighter).
+  svg.append("path").attr("class", "borders")
+    .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
+    .attr("fill", "none").attr("stroke", "#8fa3c7")
+    .attr("stroke-width", 0.6).attr("stroke-opacity", 0.55)
+    .attr("pointer-events", "none");
+  svg.append("path").attr("class", "coastline")
+    .datum(topojson.mesh(world, world.objects.countries, (a, b) => a === b))
+    .attr("fill", "none").attr("stroke", "#a9bcdd")
+    .attr("stroke-width", 0.9).attr("stroke-opacity", 0.9)
+    .attr("pointer-events", "none");
+
   const parksLayer = svg.append("g");
   const PIN = "M0,0 C-5,-8 -9,-11 -9,-16 a9,9 0 1,1 18,0 C9,-11 5,-8 0,0 Z";
   const parkPins = parksLayer.selectAll("g")
@@ -70,7 +83,7 @@
 
   // ---- rendering ----
   function render() {
-    svg.selectAll("path.sphere, path.graticule").attr("d", path);
+    svg.selectAll("path.sphere, path.graticule, path.borders, path.coastline").attr("d", path);
     countryPaths.attr("d", path);
     statePaths.attr("d", path);
 
