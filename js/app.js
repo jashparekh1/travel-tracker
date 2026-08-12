@@ -62,8 +62,8 @@
     window.MERGED_INTO[b.properties.name] === a.properties.name;
   svg.append("path").attr("class", "borders")
     .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b && !mergedPair(a, b)))
-    .attr("fill", "none").attr("stroke", "#8fa3c7")
-    .attr("stroke-width", 0.6).attr("stroke-opacity", 0.55)
+    .attr("fill", "none").attr("stroke", "#0b1020")
+    .attr("stroke-width", 0.7).attr("stroke-opacity", 0.9)
     .attr("pointer-events", "none");
   svg.append("path").attr("class", "coastline")
     .datum(topojson.mesh(world, world.objects.countries, (a, b) => a === b))
