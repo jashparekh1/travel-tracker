@@ -437,7 +437,8 @@ h2.continent {
   .topbar a, button.btn { font-size: 12px; padding: 5px 9px; }
 
   .legend { padding: 8px 10px; font-size: 11px; }
-  .legend .hint { display: none; }
+  /* !important: the park hint's visibility is toggled via inline style */
+  .legend .hint { display: none !important; }
 
   .seg-float { right: 8px; bottom: 8px; }
   .seg button { padding: 6px 10px; font-size: 12px; }

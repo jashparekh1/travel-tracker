@@ -152,33 +152,54 @@
   }
 
   // ---- rendering ----
+  // Skip-flags: when a layer was hidden last frame and stays hidden, its
+  // per-node DOM updates are skipped entirely (big win while spinning the
+  // world view on phones).
+  let citiesShown = false;
+  let parksShown = false;
+
   function render() {
     svg.selectAll("path.sphere, path.graticule, path.borders, path.coastline").attr("d", path);
     countryPaths.attr("d", path);
-    statePaths.attr("d", path);
+    if (viewMode === "all") statePaths.attr("d", path);
     lakePaths.attr("d", path);
 
     const showParks = viewMode === "parks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
     const [cx, cy] = [-projection.rotate()[0], -projection.rotate()[1]];
 
-    cityNodes.attr("display", (d) => {
-      const minZoom = CITY_ZOOM[d.cap ? Math.min(d.rank, 1) : d.rank];
-      if (zoomK < minZoom) return "none";
-      return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.4 ? "none" : null;
-    }).attr("transform", (d) => {
-      const p = projection([d.lon, d.lat]);
-      return p ? `translate(${p[0]},${p[1]})` : null;
-    });
-    const pinScale = Math.min(1.6, 0.85 + 0.25 * Math.log2(zoomK));
-    parkPins.attr("display", (d) => {
-      if (!showParks) return "none";
-      return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.45 ? "none" : null;
-    }).attr("transform", (d) => {
-      const p = projection([d.lon, d.lat]);
-      return p ? `translate(${p[0]},${p[1]}) scale(${pinScale})` : null;
-    });
+    const anyCities = zoomK >= CITY_ZOOM[0];
+    if (anyCities || citiesShown) {
+      cityNodes.attr("display", (d) => {
+        const minZoom = CITY_ZOOM[d.cap ? Math.min(d.rank, 1) : d.rank];
+        if (zoomK < minZoom) return "none";
+        return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.4 ? "none" : null;
+      }).attr("transform", (d) => {
+        const p = projection([d.lon, d.lat]);
+        return p ? `translate(${p[0]},${p[1]})` : null;
+      });
+    }
+    citiesShown = anyCities;
+    if (showParks || parksShown) {
+      const pinScale = Math.min(1.6, 0.85 + 0.25 * Math.log2(zoomK));
+      parkPins.attr("display", (d) => {
+        if (!showParks) return "none";
+        return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.45 ? "none" : null;
+      }).attr("transform", (d) => {
+        const p = projection([d.lon, d.lat]);
+        return p ? `translate(${p[0]},${p[1]}) scale(${pinScale})` : null;
+      });
+    }
+    parksShown = showParks;
     document.getElementById("park-hint").style.display =
       viewMode === "all" && !showParks ? "block" : "none";
+  }
+
+  // Coalesce drag/zoom events into one render per animation frame.
+  let renderQueued = false;
+  function requestRender() {
+    if (renderQueued) return;
+    renderQueued = true;
+    requestAnimationFrame(() => { renderQueued = false; render(); });
   }
 
   // ---- interaction: rotate (drag) + zoom (wheel/pinch) ----
@@ -190,7 +211,7 @@
       const k = 75 / projection.scale();
       const r = projection.rotate();
       projection.rotate([r[0] + event.dx * k, Math.max(-90, Math.min(90, r[1] - event.dy * k))]);
-      render();
+      requestRender();
     }));
 
   const zoom = d3.zoom()
@@ -199,7 +220,7 @@
     .on("zoom", (event) => {
       zoomK = event.transform.k;
       projection.scale(baseScale() * zoomK);
-      render();
+      requestRender();
     });
   svg.call(zoom);
 
