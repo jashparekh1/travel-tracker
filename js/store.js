@@ -107,6 +107,16 @@ window.Store = (() => {
     notify();
   }
 
+  function updateNote(key, index, entry) {
+    const entries = notesFor(key).slice();
+    if (index < 0 || index >= entries.length) return;
+    entries[index] = entry;
+    overrides.notes[key] = entries;
+    save();
+    schedulePush();
+    notify();
+  }
+
   function deleteNote(key, index) {
     const entries = notesFor(key).slice();
     entries.splice(index, 1);
@@ -421,7 +431,7 @@ window.Store = (() => {
 
   return {
     get, cycle, set, counts, exportFile, clearLocal,
-    notesFor, allNotes, addNote, deleteNote,
+    notesFor, allNotes, addNote, updateNote, deleteNote,
     onChange: (cb) => listeners.push(cb),
     compareWith, compareOff, compareStatus, compareCounts,
     comparing: () => (comparing ? { a: comparing.a.name, b: comparing.b.name } : null),

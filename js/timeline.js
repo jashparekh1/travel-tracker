@@ -37,6 +37,36 @@
 
   const pickFrom = myPicker(document.getElementById("note-when"));
   const pickTo = myPicker(document.getElementById("note-when-to"));
+  const keyToLabel = {};
+  for (const [label, key] of Object.entries(placeKeys)) keyToLabel[key] = label;
+
+  let editing = null; // {key, i} while editing an existing entry
+
+  function exitEditMode() {
+    editing = null;
+    document.getElementById("note-add").textContent = "Add to timeline";
+    document.getElementById("note-cancel").style.display = "none";
+    document.getElementById("note-place").value = "";
+    pickFrom.clear();
+    pickTo.clear();
+    document.getElementById("note-text").value = "";
+    document.getElementById("note-error").textContent = "";
+  }
+
+  function startEdit(key, i) {
+    const entry = Store.notesFor(key)[i];
+    if (!entry) return;
+    editing = { key, i };
+    document.getElementById("note-place").value = keyToLabel[key] || "";
+    pickFrom.set(entry.from || entry.when || null);
+    pickTo.set(entry.to || null);
+    document.getElementById("note-text").value = entry.text || "";
+    document.getElementById("note-add").textContent = "Save changes";
+    document.getElementById("note-cancel").style.display = "";
+    document.querySelector(".note-form").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  document.getElementById("note-cancel").onclick = exitEditMode;
 
   document.getElementById("note-add").onclick = () => {
     const err = (m) => { document.getElementById("note-error").textContent = m || ""; };
@@ -48,8 +78,20 @@
     const to = pickTo.value();
     const text = document.getElementById("note-text").value.trim();
     if (!from && !text) { err("Add a date, a note, or both."); return; }
-    Store.addNote(key, from, to, text);
-    document.getElementById("note-text").value = "";
+    if (editing) {
+      if (key === editing.key) {
+        const range = to && to !== from ? to : null;
+        Store.updateNote(key, editing.i, { from: from || null, to: range, text });
+      } else {
+        // Moved to a different place: remove old, add under the new key.
+        Store.deleteNote(editing.key, editing.i);
+        Store.addNote(key, from, to, text);
+      }
+      exitEditMode();
+    } else {
+      Store.addNote(key, from, to, text);
+      document.getElementById("note-text").value = "";
+    }
   };
 
   // A range label clipped to one year: "Dec 2025" or "Mar – Aug 2025".
@@ -116,12 +158,19 @@
         const row = document.createElement("div");
         row.className = "timeline-entry" + (sameMonth ? " same-month" : "");
         row.innerHTML =
+          `<div class="tl-actions">` +
+          `<button class="btn small tl-edit" title="Edit this memory">✎</button>` +
           `<button class="btn small tl-del" title="Delete this memory">✕</button>` +
+          `</div>` +
           `<div class="tl-head">` +
           (s.label && !sameMonth ? `<span class="tl-when">${s.label}</span>` : "") +
           `<span class="tl-place">${keyLabel(s.key)}</span>${cont}</div>` +
           (s.text ? `<div class="tl-text">${s.text.replace(/</g, "&lt;")}</div>` : "");
-        row.querySelector(".tl-del").onclick = () => Store.deleteNote(s.key, s.i);
+        row.querySelector(".tl-edit").onclick = () => startEdit(s.key, s.i);
+        row.querySelector(".tl-del").onclick = () => {
+          if (editing && editing.key === s.key && editing.i === s.i) exitEditMode();
+          Store.deleteNote(s.key, s.i);
+        };
         group.appendChild(row);
       }
       root.appendChild(group);

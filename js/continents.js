@@ -52,6 +52,11 @@ window.myPicker = (el) => {
   return {
     value: () => (mSel.value && ySel.value ? `${ySel.value}-${mSel.value}` : null),
     clear: () => { mSel.value = ""; ySel.value = ""; },
+    set: (v) => {
+      if (!v) { mSel.value = ""; ySel.value = ""; return; }
+      ySel.value = v.slice(0, 4);
+      mSel.value = v.slice(5, 7);
+    },
   };
 };
 
