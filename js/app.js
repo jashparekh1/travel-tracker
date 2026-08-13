@@ -293,7 +293,8 @@
   // ---- tooltip ----
   function showTooltip(event, name, sub) {
     tooltip.style.display = "block";
-    tooltip.innerHTML = `<div>${name}</div><div class="tt-status">${sub}</div>`;
+    const noteHint = Store.comparing() ? "" : `<div class="tt-status tt-note">✎ right-click to add a note</div>`;
+    tooltip.innerHTML = `<div>${name}</div><div class="tt-status">${sub}</div>` + noteHint;
     moveTooltip(event);
   }
   function moveTooltip(event) {
@@ -329,6 +330,12 @@
       Store.cycle("countries", n);
       showTooltip(event, flagImg("countries", n) + displayName(n), countrySub(n));
       showMarkToast("countries", n, flagImg("countries", n) + " " + displayName(n));
+    })
+    .on("contextmenu", (event, d) => {
+      event.preventDefault();
+      const n = countryName(d);
+      hideTooltip();
+      openNoteModal("countries/" + n, displayName(n));
     });
 
   const stateSub = (n) => Store.comparing() ? compareSub("states", n)
@@ -342,6 +349,11 @@
       Store.cycle("states", d.properties.name);
       showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, stateSub(d.properties.name));
       showMarkToast("states", d.properties.name, flagImg("states", d.properties.name) + " " + d.properties.name);
+    })
+    .on("contextmenu", (event, d) => {
+      event.preventDefault();
+      hideTooltip();
+      openNoteModal("states/" + d.properties.name, d.properties.name);
     });
 
   // ---- park card ----
@@ -396,21 +408,23 @@
 
   // ---- note modal (from/to months + free text) ----
   const noteModal = document.getElementById("note-modal");
+  const notePickFrom = myPicker(document.getElementById("gnote-from"));
+  const notePickTo = myPicker(document.getElementById("gnote-to"));
   let noteKey = null;
 
   function openNoteModal(key, label) {
     noteKey = key;
     document.getElementById("note-title").textContent = "Add note · " + label.replace(/<[^>]*>/g, "").trim();
-    document.getElementById("gnote-from").value = "";
-    document.getElementById("gnote-to").value = "";
+    notePickFrom.clear();
+    notePickTo.clear();
     document.getElementById("gnote-text").value = "";
     document.getElementById("gnote-error").textContent = "";
     noteModal.classList.add("open");
   }
 
   document.getElementById("gnote-save").onclick = () => {
-    const from = document.getElementById("gnote-from").value || null;
-    const to = document.getElementById("gnote-to").value || null;
+    const from = notePickFrom.value();
+    const to = notePickTo.value();
     const text = document.getElementById("gnote-text").value.trim();
     if (!from && !text) {
       document.getElementById("gnote-error").textContent = "Add a date, a note, or both.";
@@ -460,6 +474,11 @@
       if (dragMoved) return;
       event.stopPropagation();
       openCard(d, "parks");
+    })
+    .on("contextmenu", (event, d) => {
+      event.preventDefault();
+      hideTooltip();
+      openNoteModal("parks/" + d.name, d.name + " National Park");
     });
 
   landmarkPins
@@ -474,6 +493,11 @@
       if (dragMoved) return;
       event.stopPropagation();
       openCard(d, "landmarks");
+    })
+    .on("contextmenu", (event, d) => {
+      event.preventDefault();
+      hideTooltip();
+      openNoteModal("landmarks/" + d.name, d.name);
     });
 
   // ---- view toggle ----

@@ -385,7 +385,38 @@ button.btn.small { padding: 4px 10px; font-size: 12px; }
 }
 #mark-toast .flag { vertical-align: -3px; }
 #note-modal .note-row { display: flex; gap: 8px; margin-bottom: 8px; }
-#note-modal textarea { width: 100%; font-family: inherit; }
+
+/* Dark textarea everywhere (was unstyled/white in the note modal) */
+.modal textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid #2b3760;
+  border-radius: 8px;
+  color: var(--text);
+  caret-color: var(--text);
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: inherit;
+  margin-bottom: 8px;
+}
+.modal textarea:focus { outline: none; border-color: var(--accent); }
+
+/* Compact month/year dropdown pairs */
+.my-picker { display: flex; gap: 6px; flex: 1; min-width: 0; }
+.my-picker select {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid #2b3760;
+  border-radius: 8px;
+  color: var(--text);
+  padding: 7px 6px;
+  font-size: 13px;
+}
+.my-picker select:focus { outline: none; border-color: var(--accent); }
+.note-row { flex-wrap: wrap; }
+
+.tt-note { opacity: 0.75; }
 
 /* ---------- visited page ---------- */
 .page main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 60px; }

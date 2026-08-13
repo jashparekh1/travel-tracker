@@ -35,6 +35,26 @@ window.US_STATE_CODES = {
   "Wyoming": "us-wy", "District of Columbia": "", "Puerto Rico": "pr",
 };
 
+// Compact month+year picker (short month names — native month inputs
+// show full names and overflow). Returns {value(), clear()} where value
+// is "YYYY-MM" or null.
+window.myPicker = (el) => {
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const mSel = document.createElement("select");
+  mSel.innerHTML = `<option value="">Month</option>` +
+    MONTHS.map((m, i) => `<option value="${String(i + 1).padStart(2, "0")}">${m}</option>`).join("");
+  const ySel = document.createElement("select");
+  const thisYear = 2030;
+  let opts = `<option value="">Year</option>`;
+  for (let y = thisYear; y >= 1950; y--) opts += `<option value="${y}">${y}</option>`;
+  ySel.innerHTML = opts;
+  el.append(mSel, ySel);
+  return {
+    value: () => (mSel.value && ySel.value ? `${ySel.value}-${mSel.value}` : null),
+    clear: () => { mSel.value = ""; ySel.value = ""; },
+  };
+};
+
 // Flag <img> for a country or state name ("" if none available).
 window.flagImg = (type, name, cls) => {
   let code = "";

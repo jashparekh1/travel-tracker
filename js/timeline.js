@@ -35,14 +35,17 @@
     return e.to && e.to !== from ? `${fmtMonth(from)} – ${fmtMonth(e.to)}` : fmtMonth(from);
   };
 
+  const pickFrom = myPicker(document.getElementById("note-when"));
+  const pickTo = myPicker(document.getElementById("note-when-to"));
+
   document.getElementById("note-add").onclick = () => {
     const err = (m) => { document.getElementById("note-error").textContent = m || ""; };
     err("");
     const place = document.getElementById("note-place").value.trim();
     const key = placeKeys[place];
     if (!key) { err("Pick a place from the list (start typing to search)."); return; }
-    const from = document.getElementById("note-when").value || null;
-    const to = document.getElementById("note-when-to").value || null;
+    const from = pickFrom.value();
+    const to = pickTo.value();
     const text = document.getElementById("note-text").value.trim();
     if (!from && !text) { err("Add a date, a note, or both."); return; }
     Store.addNote(key, from, to, text);
