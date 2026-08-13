@@ -546,8 +546,15 @@ h2.continent {
   border-left: 2px solid #2b3760;
   margin-left: 6px;
   padding-left: 20px;
-  display: grid;
-  gap: 10px;
+}
+.tl-group .timeline-entry { margin-bottom: 10px; }
+/* Same month as the card above: tuck in close, hollow rail dot */
+.tl-group .timeline-entry.same-month { margin-top: -4px; }
+.timeline-entry.same-month::before {
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  width: 8px;
+  height: 8px;
 }
 
 .timeline-entry {

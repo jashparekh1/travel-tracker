@@ -106,15 +106,19 @@
       const group = document.createElement("div");
       group.className = "tl-group";
       const list = byYear[year].sort((a, b) => a.sort.localeCompare(b.sort));
+      let prevLabel = null;
       for (const s of list) {
         const cont = s.contBefore ? `<span class="tl-cont">↩ cont’d</span>`
           : s.contAfter ? `<span class="tl-cont">continues →</span>` : "";
+        // Same month as the card above: cluster under one date pill.
+        const sameMonth = !!s.label && s.label === prevLabel;
+        prevLabel = s.label;
         const row = document.createElement("div");
-        row.className = "timeline-entry";
+        row.className = "timeline-entry" + (sameMonth ? " same-month" : "");
         row.innerHTML =
           `<button class="btn small tl-del" title="Delete this memory">✕</button>` +
           `<div class="tl-head">` +
-          (s.label ? `<span class="tl-when">${s.label}</span>` : "") +
+          (s.label && !sameMonth ? `<span class="tl-when">${s.label}</span>` : "") +
           `<span class="tl-place">${keyLabel(s.key)}</span>${cont}</div>` +
           (s.text ? `<div class="tl-text">${s.text.replace(/</g, "&lt;")}</div>` : "");
         row.querySelector(".tl-del").onclick = () => Store.deleteNote(s.key, s.i);
