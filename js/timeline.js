@@ -52,40 +52,75 @@
     document.getElementById("note-text").value = "";
   };
 
+  // A range label clipped to one year: "Dec 2025" or "Mar – Aug 2025".
+  const fmtSeg = (from, to) => {
+    if (from === to) return fmtMonth(from);
+    return `${MONTHS[+from.slice(5, 7) - 1]} – ${MONTHS[+to.slice(5, 7) - 1]} ${from.slice(0, 4)}`;
+  };
+
   function renderTimeline() {
     const root = document.getElementById("timeline");
     root.innerHTML = "";
-    const flat = [];
+
+    // Split ranges so each year shows its own slice of the trip.
+    const segments = [];
+    let total = 0;
     for (const [key, entries] of Object.entries(Store.allNotes())) {
-      entries.forEach((e, i) => flat.push({ key, i, when: entryFrom(e), to: e.to, text: e.text }));
+      entries.forEach((e, i) => {
+        total++;
+        const from = entryFrom(e);
+        if (!from) {
+          segments.push({ key, i, year: "Undated", label: "", text: e.text, sort: "9999" });
+          return;
+        }
+        const to = e.to && e.to > from ? e.to : from;
+        const yFrom = +from.slice(0, 4);
+        const yTo = +to.slice(0, 4);
+        for (let y = yFrom; y <= yTo; y++) {
+          const segFrom = y === yFrom ? from : `${y}-01`;
+          const segTo = y === yTo ? to : `${y}-12`;
+          segments.push({
+            key, i, year: String(y),
+            label: fmtSeg(segFrom, segTo),
+            text: e.text, sort: segFrom,
+            contBefore: y > yFrom, contAfter: y < yTo,
+          });
+        }
+      });
     }
-    document.getElementById("stats-timeline").innerHTML = flat.length
-      ? `<b>${flat.length}</b> ${flat.length === 1 ? "memory" : "memories"} on your timeline.`
+
+    document.getElementById("stats-timeline").innerHTML = total
+      ? `<b>${total}</b> ${total === 1 ? "memory" : "memories"} on your timeline.`
       : "Log where you went and when — it becomes your travel timeline.";
+
     const byYear = {};
-    for (const e of flat) {
-      const y = e.when ? e.when.slice(0, 4) : "Undated";
-      (byYear[y] = byYear[y] || []).push(e);
-    }
+    for (const s of segments) (byYear[s.year] = byYear[s.year] || []).push(s);
     const years = Object.keys(byYear)
       .sort((a, b) => (b === "Undated" ? -1 : a === "Undated" ? 1 : b.localeCompare(a)));
+
     for (const year of years) {
       const h = document.createElement("h2");
-      h.className = "continent";
+      h.className = "tl-year";
       h.textContent = year;
       root.appendChild(h);
-      const list = byYear[year].sort((a, b) => (a.when || "9999").localeCompare(b.when || "9999"));
-      for (const e of list) {
+      const group = document.createElement("div");
+      group.className = "tl-group";
+      const list = byYear[year].sort((a, b) => a.sort.localeCompare(b.sort));
+      for (const s of list) {
+        const cont = s.contBefore ? `<span class="tl-cont">↩ cont’d</span>`
+          : s.contAfter ? `<span class="tl-cont">continues →</span>` : "";
         const row = document.createElement("div");
         row.className = "timeline-entry";
         row.innerHTML =
-          `<span class="tl-when">${fmtWhen(e) || "—"}</span>` +
-          `<span class="tl-place">${keyLabel(e.key)}</span>` +
-          `<span class="tl-text">${e.text ? e.text.replace(/</g, "&lt;") : ""}</span>` +
-          `<button class="btn small tl-del" title="Delete">✕</button>`;
-        row.querySelector(".tl-del").onclick = () => Store.deleteNote(e.key, e.i);
-        root.appendChild(row);
+          `<button class="btn small tl-del" title="Delete this memory">✕</button>` +
+          `<div class="tl-head">` +
+          (s.label ? `<span class="tl-when">${s.label}</span>` : "") +
+          `<span class="tl-place">${keyLabel(s.key)}</span>${cont}</div>` +
+          (s.text ? `<div class="tl-text">${s.text.replace(/</g, "&lt;")}</div>` : "");
+        row.querySelector(".tl-del").onclick = () => Store.deleteNote(s.key, s.i);
+        group.appendChild(row);
       }
+      root.appendChild(group);
     }
   }
 
