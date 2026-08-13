@@ -437,6 +437,46 @@ h2.continent {
 
 .footer-note { margin-top: 34px; color: var(--muted); font-size: 12.5px; }
 
+/* ---------- timeline ---------- */
+.note-form {
+  background: var(--panel);
+  border: 1px solid #232c49;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 20px;
+  display: grid;
+  gap: 8px;
+  max-width: 560px;
+}
+.note-row { display: flex; gap: 8px; }
+.note-row input[list] { flex: 1; }
+.note-form input, .note-form textarea {
+  background: var(--bg);
+  border: 1px solid #2b3760;
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: inherit;
+}
+.note-form input:focus, .note-form textarea:focus { outline: none; border-color: var(--accent); }
+.note-form .btn { justify-self: start; }
+
+.timeline-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #1c2540;
+  font-size: 13.5px;
+}
+.tl-when { color: var(--accent); font-weight: 700; min-width: 62px; font-variant-numeric: tabular-nums; }
+.tl-place { min-width: 140px; font-weight: 600; }
+.tl-place .flag { vertical-align: -3px; }
+.tl-text { flex: 1; color: var(--muted); }
+.tl-del { opacity: 0.4; }
+.timeline-entry:hover .tl-del { opacity: 1; }
+
 /* ---------- mobile ---------- */
 @media (max-width: 640px) {
   .topbar { padding: 8px 10px; gap: 6px; }

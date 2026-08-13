@@ -21,6 +21,10 @@ window.Store = (() => {
     overrides[k] = overrides[k] || {};
     seed[k] = seed[k] || {};
   }
+  // Notes: "type/name" -> [{when: "YYYY-MM"|null, text}] . Overrides hold
+  // whole per-place lists (same layering rules as statuses).
+  seed.notes = seed.notes || {};
+  overrides.notes = overrides.notes || {};
 
   let remote = null; // full doc from Supabase; authoritative when present
   let comparing = null; // {a: {name, doc}, b: {name, doc}} — overlay compare
@@ -77,6 +81,40 @@ window.Store = (() => {
     notify();
   }
 
+  // ---- notes ----
+  function notesFor(key) {
+    if (overrides.notes[key] !== undefined) return overrides.notes[key];
+    const base = remote ? (remote.notes || {}) : seed.notes;
+    return base[key] || [];
+  }
+
+  function allNotes() {
+    const base = remote ? (remote.notes || {}) : seed.notes;
+    const keys = new Set([...Object.keys(base), ...Object.keys(overrides.notes)]);
+    const out = {};
+    for (const k of keys) {
+      const entries = notesFor(k);
+      if (entries.length) out[k] = entries;
+    }
+    return out;
+  }
+
+  function addNote(key, when, text) {
+    overrides.notes[key] = notesFor(key).concat([{ when: when || null, text: text || "" }]);
+    save();
+    schedulePush();
+    notify();
+  }
+
+  function deleteNote(key, index) {
+    const entries = notesFor(key).slice();
+    entries.splice(index, 1);
+    overrides.notes[key] = entries;
+    save();
+    schedulePush();
+    notify();
+  }
+
   function counts() {
     const names = Object.keys(window.COUNTRY_META);
     const sovereign = names.filter((n) => window.COUNTRY_META[n][2]);
@@ -106,6 +144,7 @@ window.Store = (() => {
       const v = raw("parks", pk.name);
       if (v) out.parks[pk.name] = v;
     }
+    out.notes = allNotes();
     return out;
   }
 
@@ -173,7 +212,10 @@ window.Store = (() => {
       // layered on top and immediately pushed (push() then clears them).
       remote = data.data || {};
       for (const k of TYPES) remote[k] = remote[k] || {};
-      if (TYPES.some((k) => Object.keys(overrides[k]).length)) await push();
+      remote.notes = remote.notes || {};
+      const dirty = TYPES.some((k) => Object.keys(overrides[k]).length) ||
+        Object.keys(overrides.notes).length;
+      if (dirty) await push();
       else setSync("synced");
     } else {
       // First sign-in: current local state becomes the cloud document.
@@ -196,7 +238,9 @@ window.Store = (() => {
     }
     // Fold what we just pushed into the remote layer and drop overrides.
     remote = doc;
+    remote.notes = remote.notes || {};
     for (const k of TYPES) overrides[k] = {};
+    overrides.notes = {};
     save();
     setSync("synced");
   }
@@ -368,6 +412,7 @@ window.Store = (() => {
 
   return {
     get, cycle, set, counts, exportFile, clearLocal,
+    notesFor, allNotes, addNote, deleteNote,
     onChange: (cb) => listeners.push(cb),
     compareWith, compareOff, compareStatus, compareCounts,
     comparing: () => (comparing ? { a: comparing.a.name, b: comparing.b.name } : null),

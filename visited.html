@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Travels · Visited</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=9">
+  <link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body class="page">
   <div class="topbar">
@@ -21,6 +21,7 @@
       <button data-tab="countries" class="active">Countries</button>
       <button data-tab="states">US States</button>
       <button data-tab="parks">National Parks</button>
+      <button data-tab="timeline">Timeline</button>
     </div>
 
     <div class="tab-pane active" id="pane-countries">
@@ -40,6 +41,21 @@
       <div class="park-grid" id="park-list"></div>
     </div>
 
+    <div class="tab-pane" id="pane-timeline">
+      <div class="pane-stats" id="stats-timeline"></div>
+      <div class="note-form">
+        <div class="note-row">
+          <input id="note-place" list="note-places" placeholder="Where? (country, state, or park)">
+          <datalist id="note-places"></datalist>
+          <input id="note-when" type="month" title="When (optional)">
+        </div>
+        <textarea id="note-text" rows="2" placeholder="What did you see / do?"></textarea>
+        <div class="acct-error" id="note-error"></div>
+        <button class="btn primary" id="note-add">Add to timeline</button>
+      </div>
+      <div id="timeline"></div>
+    </div>
+
     <p class="footer-note">
       Click anything to toggle its status. Changes live in this browser until you
       press <b>Export</b> and commit the downloaded file as <code>data/my-travels.js</code>.
@@ -52,7 +68,7 @@
   <script src="js/countries-meta.js?v=2"></script>
   <script src="js/continents.js?v=2"></script>
   <script src="js/parks.js?v=2"></script>
-  <script src="js/store.js?v=4"></script>
-  <script src="js/visited.js?v=3"></script>
+  <script src="js/store.js?v=5"></script>
+  <script src="js/visited.js?v=4"></script>
 </body>
 </html>
