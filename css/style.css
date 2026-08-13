@@ -433,11 +433,21 @@ h2.continent {
 }
 .chip:hover { border-color: #3b4a7a; }
 .chip .dot { width: 9px; height: 9px; border-radius: 50%; background: #4a5674; flex: none; }
-.chip.visited { border-color: color-mix(in srgb, var(--visited) 55%, transparent); }
+/* Marked chips are shaded in their status color so state reads at a glance */
+.chip.visited {
+  background: color-mix(in srgb, var(--visited) 30%, var(--panel));
+  border-color: color-mix(in srgb, var(--visited) 75%, transparent);
+}
 .chip.visited .dot { background: var(--visited); }
-.chip.lived { border-color: color-mix(in srgb, var(--lived) 55%, transparent); }
+.chip.lived {
+  background: color-mix(in srgb, var(--lived) 30%, var(--panel));
+  border-color: color-mix(in srgb, var(--lived) 75%, transparent);
+}
 .chip.lived .dot { background: var(--lived); }
-.chip.want { border-color: color-mix(in srgb, var(--want) 55%, transparent); }
+.chip.want {
+  background: color-mix(in srgb, var(--want) 30%, var(--panel));
+  border-color: color-mix(in srgb, var(--want) 75%, transparent);
+}
 .chip.want .dot { background: var(--want); }
 
 /* park cards grid */

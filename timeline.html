@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Travels · Timeline</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+  <link rel="stylesheet" href="css/style.css?v=12">
+</head>
+<body class="page">
+  <div class="topbar">
+    <h1>🌍 My Travels</h1>
+    <div class="stats" id="stats"></div>
+    <div class="spacer"></div>
+    <a href="index.html">← Back to globe</a>
+    <a href="visited.html">Visited lists</a>
+    <button class="btn" id="btn-export" title="Download my-travels.js to commit to git">Export</button>
+  </div>
+
+  <main>
+    <div class="pane-stats" id="stats-timeline"></div>
+    <div class="note-form">
+      <div class="note-row">
+        <input id="note-place" list="note-places" placeholder="Where? (country, state, park, or wonder)">
+        <datalist id="note-places"></datalist>
+        <input id="note-when" type="month" title="From (optional)">
+        <input id="note-when-to" type="month" title="To (optional)">
+      </div>
+      <textarea id="note-text" rows="2" placeholder="What did you see / do?"></textarea>
+      <div class="acct-error" id="note-error"></div>
+      <button class="btn primary" id="note-add">Add to timeline</button>
+    </div>
+    <div id="timeline"></div>
+  </main>
+
+  <script src="vendor/supabase.min.js"></script>
+  <script src="js/supabase-config.js?v=2"></script>
+  <script src="data/my-travels.js?v=2"></script>
+  <script src="js/countries-meta.js?v=2"></script>
+  <script src="js/continents.js?v=2"></script>
+  <script src="js/parks.js?v=2"></script>
+  <script src="js/landmarks.js?v=1"></script>
+  <script src="js/store.js?v=6"></script>
+  <script src="js/timeline.js?v=1"></script>
+</body>
+</html>
