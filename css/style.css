@@ -167,7 +167,7 @@ body.page .topbar { position: sticky; }
 .park { cursor: pointer; }
 .park .pin-body { stroke: #0b1020; stroke-width: 1; }
 
-/* Park name labels: parks view only */
+/* Pin name labels: shown in Parks/Wonders views, and in All when zoomed */
 .park-label {
   display: none;
   font-size: 10.5px;
@@ -177,7 +177,16 @@ body.page .topbar { position: sticky; }
   stroke: #0b1020;
   stroke-width: 2.5px;
 }
-svg.parks-mode .park-label { display: block; }
+svg.parks-mode .park:not(.landmark) .park-label { display: block; }
+svg.wonders-mode .landmark .park-label { display: block; }
+svg.np-labels .park-label { display: block; }
+
+.pin-star {
+  font-size: 9px;
+  font-weight: 700;
+  fill: #0b1020;
+  pointer-events: none;
+}
 .park .pin-body { fill: #7c8db0; }
 .park.st-visited .pin-body { fill: #ef4444; }
 .park.st-want .pin-body { fill: var(--want); }
@@ -359,6 +368,25 @@ button.btn.small { padding: 4px 10px; font-size: 12px; }
 
 #legend-compare { border-color: var(--accent); }
 
+#mark-toast {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 14;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid #2b3760;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+#mark-toast .flag { vertical-align: -3px; }
+#note-modal .note-row { display: flex; gap: 8px; margin-bottom: 8px; }
+#note-modal textarea { width: 100%; font-family: inherit; }
+
 /* ---------- visited page ---------- */
 .page main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 60px; }
 
@@ -470,7 +498,7 @@ h2.continent {
   border-bottom: 1px solid #1c2540;
   font-size: 13.5px;
 }
-.tl-when { color: var(--accent); font-weight: 700; min-width: 62px; font-variant-numeric: tabular-nums; }
+.tl-when { color: var(--accent); font-weight: 700; min-width: 120px; font-variant-numeric: tabular-nums; }
 .tl-place { min-width: 140px; font-weight: 600; }
 .tl-place .flag { vertical-align: -3px; }
 .tl-text { flex: 1; color: var(--muted); }

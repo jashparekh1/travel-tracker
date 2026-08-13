@@ -11,7 +11,7 @@
     return;
   }
 
-  const statsLine = (c) => `🌍 ${c.countries} · 🇺🇸 ${c.states} · 🏞️ ${c.parks}`;
+  const statsLine = (c) => `🌍 ${c.countries} · 🇺🇸 ${c.states} · 🏞️ ${c.parks} · ⭐ ${c.landmarks || 0}`;
 
   async function renderModal() {
     if (!Store.cloud.user()) {

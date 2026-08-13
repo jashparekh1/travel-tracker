@@ -107,24 +107,31 @@
     });
   }, { rootMargin: "200px" });
 
-  const sortedParks = [...window.PARKS].sort((a, b) => a.name.localeCompare(b.name));
-  for (const park of sortedParks) {
+  function buildTile(root, item, type, emoji, sub) {
     const tile = document.createElement("div");
     tile.className = "park-tile";
-    tile.dataset.park = park.name;
+    tile.dataset.type = type;
+    tile.dataset.name = item.name;
     tile.innerHTML =
-      `<div class="photo">🏞️</div>` +
-      `<div class="body"><h3>${park.name}</h3><div class="sub">${park.state}</div>` +
+      `<div class="photo">${emoji}</div>` +
+      `<div class="body"><h3>${item.name}</h3><div class="sub">${sub}</div>` +
       `<button class="toggle-visited"></button></div>`;
-    tile._park = park;
-    tile.querySelector(".toggle-visited").onclick = () => Store.cycle("parks", park.name);
-    parkRoot.appendChild(tile);
+    tile._park = item; // observer reads .wiki off this for the photo
+    tile.querySelector(".toggle-visited").onclick = () => Store.cycle(type, item.name);
+    root.appendChild(tile);
     observer.observe(tile);
   }
 
+  [...window.PARKS].sort((a, b) => a.name.localeCompare(b.name))
+    .forEach((p) => buildTile(parkRoot, p, "parks", "🏞️", p.state));
+
+  const landmarkRoot = document.getElementById("landmark-list");
+  [...window.LANDMARKS].sort((a, b) => a.name.localeCompare(b.name))
+    .forEach((l) => buildTile(landmarkRoot, l, "landmarks", "⭐", l.place));
+
   function refreshParks() {
     document.querySelectorAll(".park-tile").forEach((tile) => {
-      const s = Store.get("parks", tile.dataset.park);
+      const s = Store.get(tile.dataset.type, tile.dataset.name);
       tile.classList.toggle("visited", s === "visited");
       const btn = tile.querySelector(".toggle-visited");
       btn.textContent = s === "visited" ? "✓ Visited" : s === "want" ? "✈️ Want to go" : "Mark as visited";
@@ -142,6 +149,7 @@
     placeKeys[label] = "states/" + n;
   }
   for (const p of window.PARKS) placeKeys[`${p.name} National Park`] = "parks/" + p.name;
+  for (const l of window.LANDMARKS) placeKeys[l.name] = "landmarks/" + l.name;
   const datalist = document.getElementById("note-places");
   Object.keys(placeKeys).sort().forEach((label) => {
     const o = document.createElement("option");
@@ -154,10 +162,18 @@
     const name = rest.join("/");
     if (type === "countries") return `${flagImg("countries", name)} ${displayName(name)}`;
     if (type === "states") return `${flagImg("states", name)} ${name}`;
-    return `🏞️ ${name}`;
+    return `${type === "landmarks" ? "⭐" : "🏞️"} ${name}`;
   }
 
-  const fmtWhen = (when) => (when ? `${when.slice(5, 7)}.${when.slice(0, 4)}` : "");
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const fmtMonth = (m) => (m ? `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}` : "");
+  // Entries may have {when} (old) or {from, to} (new).
+  const entryFrom = (e) => e.from || e.when || null;
+  const fmtWhen = (e) => {
+    const from = entryFrom(e);
+    if (!from) return "";
+    return e.to && e.to !== from ? `${fmtMonth(from)} – ${fmtMonth(e.to)}` : fmtMonth(from);
+  };
 
   document.getElementById("note-add").onclick = () => {
     const err = (m) => { document.getElementById("note-error").textContent = m || ""; };
@@ -165,10 +181,11 @@
     const place = document.getElementById("note-place").value.trim();
     const key = placeKeys[place];
     if (!key) { err("Pick a place from the list (start typing to search)."); return; }
-    const when = document.getElementById("note-when").value || null;
+    const from = document.getElementById("note-when").value || null;
+    const to = document.getElementById("note-when-to").value || null;
     const text = document.getElementById("note-text").value.trim();
-    if (!when && !text) { err("Add a date, a note, or both."); return; }
-    Store.addNote(key, when, text);
+    if (!from && !text) { err("Add a date, a note, or both."); return; }
+    Store.addNote(key, from, to, text);
     document.getElementById("note-text").value = "";
   };
 
@@ -177,7 +194,7 @@
     root.innerHTML = "";
     const flat = [];
     for (const [key, entries] of Object.entries(Store.allNotes())) {
-      entries.forEach((e, i) => flat.push({ key, i, when: e.when, text: e.text }));
+      entries.forEach((e, i) => flat.push({ key, i, when: entryFrom(e), to: e.to, text: e.text }));
     }
     document.getElementById("stats-timeline").innerHTML = flat.length
       ? `<b>${flat.length}</b> ${flat.length === 1 ? "memory" : "memories"} on your timeline.`
@@ -195,7 +212,7 @@
         const row = document.createElement("div");
         row.className = "timeline-entry";
         row.innerHTML =
-          `<span class="tl-when">${fmtWhen(e.when) || "—"}</span>` +
+          `<span class="tl-when">${fmtWhen(e) || "—"}</span>` +
           `<span class="tl-place">${keyLabel(e.key)}</span>` +
           `<span class="tl-text">${e.text ? e.text.replace(/</g, "&lt;") : ""}</span>` +
           `<button class="btn small tl-del" title="Delete">✕</button>`;
@@ -212,7 +229,10 @@
       `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
       (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
-      `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>`;
+      `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>` +
+      `<span>⭐ <b>${c.landmarks}</b>/${c.landmarksTotal} wonders</span>`;
+    document.getElementById("stats-landmarks").innerHTML =
+      `Visited <b>${c.landmarks}</b> of <b>${c.landmarksTotal}</b> wonders & landmarks.`;
     document.getElementById("stats-countries").innerHTML =
       `Visited <b>${c.countries}</b> of <b>${c.countriesTotal}</b> countries` +
       (c.territories ? ` (plus <b>${c.territories}</b> territories)` : "") +

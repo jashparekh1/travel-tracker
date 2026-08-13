@@ -8,7 +8,7 @@
 
 window.Store = (() => {
   const KEY = "travel-tracker-overrides-v1";
-  const TYPES = ["countries", "states", "parks"];
+  const TYPES = ["countries", "states", "parks", "landmarks"];
   const seed = window.SEED_TRAVELS || {};
 
   let overrides;
@@ -64,7 +64,7 @@ window.Store = (() => {
 
   function cycle(type, name) {
     if (comparing) return null; // read-only while comparing
-    const order = type === "parks" ? CYCLE.park : CYCLE.region;
+    const order = type === "parks" || type === "landmarks" ? CYCLE.park : CYCLE.region;
     const next = order[(order.indexOf(raw(type, name)) + 1) % order.length];
     overrides[type][name] = next === null ? "none" : next;
     save();
@@ -99,8 +99,9 @@ window.Store = (() => {
     return out;
   }
 
-  function addNote(key, when, text) {
-    overrides.notes[key] = notesFor(key).concat([{ when: when || null, text: text || "" }]);
+  function addNote(key, from, to, text) {
+    const range = to && to !== from ? to : null; // same month = single date
+    overrides.notes[key] = notesFor(key).concat([{ from: from || null, to: range, text: text || "" }]);
     save();
     schedulePush();
     notify();
@@ -122,16 +123,18 @@ window.Store = (() => {
     const t = names.filter((n) => !window.COUNTRY_META[n][2] && BEEN(country(n))).length;
     const s = window.US_STATES.filter((n) => BEEN(raw("states", n))).length;
     const p = window.PARKS.filter((pk) => raw("parks", pk.name) === "visited").length;
+    const l = window.LANDMARKS.filter((lm) => raw("landmarks", lm.name) === "visited").length;
     return {
       countries: c, countriesTotal: sovereign.length, territories: t,
       states: s, statesTotal: window.US_STATES.length,
       parks: p, parksTotal: window.PARKS.length,
+      landmarks: l, landmarksTotal: window.LANDMARKS.length,
     };
   }
 
   // Merged snapshot (no nulls) — used for export and cloud pushes.
   function merged() {
-    const out = { countries: {}, states: {}, parks: {} };
+    const out = { countries: {}, states: {}, parks: {}, landmarks: {} };
     for (const n of Object.keys(window.COUNTRY_META)) {
       const v = raw("countries", n);
       if (v) out.countries[n] = v;
@@ -143,6 +146,10 @@ window.Store = (() => {
     for (const pk of window.PARKS) {
       const v = raw("parks", pk.name);
       if (v) out.parks[pk.name] = v;
+    }
+    for (const lm of window.LANDMARKS) {
+      const v = raw("landmarks", lm.name);
+      if (v) out.landmarks[lm.name] = v;
     }
     out.notes = allNotes();
     return out;
@@ -342,6 +349,7 @@ window.Store = (() => {
       countries,
       states: window.US_STATES.filter((n) => BEEN(s[n])).length,
       parks: Object.values(p).filter((v) => v === "visited").length,
+      landmarks: Object.values(doc.landmarks || {}).filter((v) => v === "visited").length,
     };
   }
 
@@ -405,6 +413,7 @@ window.Store = (() => {
         Object.keys(window.COUNTRY_META).filter((n) => window.COUNTRY_META[n][2])),
       states: count("states", window.US_STATES),
       parks: count("parks", window.PARKS.map((p) => p.name)),
+      landmarks: count("landmarks", window.LANDMARKS.map((l) => l.name)),
     };
   }
 

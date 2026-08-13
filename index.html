@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>My Travels</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=10">
+  <link rel="stylesheet" href="css/style.css?v=11">
 </head>
 <body>
   <div class="topbar">
@@ -30,6 +30,7 @@
     <button data-mode="all" class="active">All</button>
     <button data-mode="countries">Countries</button>
     <button data-mode="parks">Parks</button>
+    <button data-mode="landmarks">Wonders</button>
   </div>
 
   <svg id="globe"></svg>
@@ -73,6 +74,26 @@
 
   <div id="tooltip"></div>
 
+  <div id="mark-toast" style="display: none">
+    <span id="toast-label"></span>
+    <button class="btn small" id="toast-note">✎ Add note</button>
+    <button class="btn small" id="toast-close">✕</button>
+  </div>
+
+  <div id="note-modal" class="modal-backdrop">
+    <div class="modal">
+      <button class="close" id="note-close">✕</button>
+      <h3 id="note-title">Add note</h3>
+      <div class="note-row">
+        <input type="month" id="gnote-from" title="From">
+        <input type="month" id="gnote-to" title="To (optional)">
+      </div>
+      <textarea id="gnote-text" rows="3" placeholder="What did you see / do?"></textarea>
+      <div class="acct-error" id="gnote-error"></div>
+      <button class="btn primary" id="gnote-save">Save</button>
+    </div>
+  </div>
+
   <div id="account-modal" class="modal-backdrop">
     <div class="modal">
       <button class="close" id="account-close">✕</button>
@@ -88,8 +109,9 @@
       <h3></h3>
       <div class="sub"></div>
       <div class="actions">
-        <button class="toggle-visited">Mark as visited</button>
-        <a class="wiki-link" target="_blank" rel="noopener">Wikipedia ↗</a>
+        <button class="toggle-visited">Mark as Visited</button>
+        <button class="toggle-wish">Mark as Wish</button>
+        <button class="btn small" id="card-note" title="Add a note">✎</button>
       </div>
     </div>
   </div>
@@ -102,10 +124,11 @@
   <script src="js/countries-meta.js?v=2"></script>
   <script src="js/continents.js?v=2"></script>
   <script src="js/parks.js?v=2"></script>
-  <script src="js/store.js?v=5"></script>
+  <script src="js/landmarks.js?v=1"></script>
+  <script src="js/store.js?v=6"></script>
   <script src="js/account.js?v=2"></script>
-  <script src="js/friends.js?v=2"></script>
+  <script src="js/friends.js?v=3"></script>
   <script src="js/compare.js?v=2"></script>
-  <script src="js/app.js?v=12"></script>
+  <script src="js/app.js?v=13"></script>
 </body>
 </html>

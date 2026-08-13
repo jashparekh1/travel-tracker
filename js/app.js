@@ -91,6 +91,17 @@
   parkPins.append("text").attr("class", "park-label")
     .attr("x", 8).attr("y", -13).text((d) => d.name);
 
+  // World wonders & landmarks: same pin mechanics, star glyph, own view.
+  const landmarksLayer = svg.append("g");
+  const landmarkPins = landmarksLayer.selectAll("g")
+    .data(window.LANDMARKS).join("g")
+    .attr("class", "park landmark");
+  landmarkPins.append("path").attr("class", "pin-body").attr("d", PIN);
+  landmarkPins.append("text").attr("class", "pin-star")
+    .attr("y", -13).attr("text-anchor", "middle").text("★");
+  landmarkPins.append("text").attr("class", "park-label")
+    .attr("x", 8).attr("y", -13).text((d) => d.name);
+
   // Some polygons (e.g. Siachen Glacier) track as part of another country.
   const countryName = (d) => window.MERGED_INTO[d.properties.name] || d.properties.name;
 
@@ -124,19 +135,21 @@
       // In All view the states layer carries the US's color; painting the
       // country polygon too bleeds through lake cutouts and coastline
       // fringes the state shapes don't exactly cover.
-      const cls = viewMode === "parks" ? "status-none"
+      const cls = viewMode === "parks" || viewMode === "landmarks" ? "status-none"
         : viewMode === "all" && n === "United States of America" ? "status-none"
         : regionClass("countries", n);
       return "country " + cls;
     });
     // States: colored in All view, outline-only in Parks view, hidden in
-    // Countries view.
+    // Countries and Wonders views.
     statePaths
-      .attr("display", viewMode === "countries" ? "none" : null)
+      .attr("display", viewMode === "all" || viewMode === "parks" ? null : "none")
       .attr("class", (d) => "state " +
         (viewMode === "all" ? regionClass("states", d.properties.name) : "status-none"));
     parkPins.attr("class", (d) => "park " +
       (cmp ? compareClass("parks", d.name) : "st-" + (Store.get("parks", d.name) || "none")));
+    landmarkPins.attr("class", (d) => "park landmark " +
+      (cmp ? compareClass("landmarks", d.name) : "st-" + (Store.get("landmarks", d.name) || "none")));
 
     // The compare legend (with its title + exit button) replaces the
     // default legend while comparing.
@@ -148,15 +161,18 @@
       document.getElementById("legend-b-name").textContent = cmp.b;
       // Tallies for whatever the current view is showing.
       const cc = Store.compareCounts();
-      const cat = viewMode === "parks" ? cc.parks : cc.countries;
+      const cat = viewMode === "parks" ? cc.parks
+        : viewMode === "landmarks" ? cc.landmarks : cc.countries;
       document.getElementById("cmp-count-both").textContent = cat.both;
       document.getElementById("cmp-count-a").textContent = cat.a;
       document.getElementById("cmp-count-b").textContent = cat.b;
       document.getElementById("cmp-unit").textContent =
         viewMode === "parks" ? "counting national parks"
+        : viewMode === "landmarks" ? "counting wonders"
         : `counting countries · states: ${cc.states.both} both, ${cc.states.a} / ${cc.states.b} only`;
     }
     svg.classed("parks-mode", viewMode === "parks");
+    svg.classed("wonders-mode", viewMode === "landmarks");
     updateStats();
   }
 
@@ -166,7 +182,8 @@
       `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
       (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
-      `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>`;
+      `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>` +
+      `<span>⭐ <b>${c.landmarks}</b>/${c.landmarksTotal} wonders</span>`;
   }
 
   // ---- rendering ----
@@ -175,6 +192,7 @@
   // world view on phones).
   let citiesShown = false;
   let parksShown = false;
+  let landmarksShown = false;
 
   function render() {
     svg.selectAll("path.sphere, path.graticule, path.borders, path.coastline").attr("d", path);
@@ -185,7 +203,7 @@
     const showParks = viewMode === "parks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
     const [cx, cy] = [-projection.rotate()[0], -projection.rotate()[1]];
 
-    const anyCities = viewMode !== "parks" && zoomK >= CITY_ZOOM[0];
+    const anyCities = viewMode !== "parks" && viewMode !== "landmarks" && zoomK >= CITY_ZOOM[0];
     if (anyCities || citiesShown) {
       cityNodes.attr("display", (d) => {
         if (!anyCities) return "none";
@@ -211,6 +229,23 @@
       parkPins.select("text.park-label").attr("transform", `scale(${1 / pinScale})`);
     }
     parksShown = showParks;
+
+    const showLandmarks = viewMode === "landmarks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
+    if (showLandmarks || landmarksShown) {
+      const pinScale = Math.max(0.5, Math.min(1.1, 0.45 + 0.18 * Math.log2(zoomK)));
+      landmarkPins.attr("display", (d) => {
+        if (!showLandmarks) return "none";
+        return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.45 ? "none" : null;
+      }).attr("transform", (d) => {
+        const p = projection([d.lon, d.lat]);
+        return p ? `translate(${p[0]},${p[1]}) scale(${pinScale})` : null;
+      });
+      landmarkPins.select("text.park-label").attr("transform", `scale(${1 / pinScale})`);
+    }
+    landmarksShown = showLandmarks;
+
+    // In All view, park/wonder names fade in once you're properly close.
+    svg.classed("np-labels", viewMode === "all" && zoomK >= 4);
     document.getElementById("park-hint").style.display =
       viewMode === "all" && !showParks ? "block" : "none";
   }
@@ -276,7 +311,7 @@
 
   const countrySub = (n) => {
     if (Store.comparing()) return compareSub("countries", n);
-    if (viewMode === "parks") return "parks view — switch to All to edit";
+    if (viewMode === "parks" || viewMode === "landmarks") return "switch to All to edit";
     if (n === "United States of America" && viewMode === "all") return "Click your states instead";
     return regionTooltip("countries", n);
   };
@@ -288,11 +323,12 @@
     })
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
-      if (dragMoved || viewMode === "parks") return;
+      if (dragMoved || viewMode === "parks" || viewMode === "landmarks") return;
       const n = countryName(d);
       if (n === "United States of America" && viewMode === "all") return; // states handle the US
       Store.cycle("countries", n);
       showTooltip(event, flagImg("countries", n) + displayName(n), countrySub(n));
+      showMarkToast("countries", n, flagImg("countries", n) + " " + displayName(n));
     });
 
   const stateSub = (n) => Store.comparing() ? compareSub("states", n)
@@ -305,6 +341,7 @@
       if (dragMoved || viewMode !== "all") return;
       Store.cycle("states", d.properties.name);
       showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, stateSub(d.properties.name));
+      showMarkToast("states", d.properties.name, flagImg("states", d.properties.name) + " " + d.properties.name);
     });
 
   // ---- park card ----
@@ -323,31 +360,91 @@
     return photoCache[park.wiki];
   }
 
-  function renderCardButton(park) {
-    const btn = card.querySelector(".toggle-visited");
-    const s = Store.get("parks", park.name);
-    btn.disabled = !!Store.comparing();
-    btn.textContent = Store.comparing() ? "Compare mode"
-      : s === "visited" ? "✓ Visited"
-      : s === "want" ? "✈️ Want to go"
-      : "Mark as visited";
-    btn.classList.toggle("is-visited", s === "visited" && !Store.comparing());
-    btn.classList.toggle("is-want", s === "want" && !Store.comparing());
-    btn.onclick = () => { Store.cycle("parks", park.name); renderCardButton(park); };
+  function renderCardButton(item, type) {
+    const s = Store.get(type, item.name);
+    const cmp = !!Store.comparing();
+    const bv = card.querySelector(".toggle-visited");
+    const bw = card.querySelector(".toggle-wish");
+    bv.disabled = bw.disabled = cmp;
+    bv.textContent = s === "visited" ? "✓ Visited" : "Mark as Visited";
+    bv.classList.toggle("is-visited", s === "visited" && !cmp);
+    bw.textContent = s === "want" ? "✈️ Wished" : "Mark as Wish";
+    bw.classList.toggle("is-want", s === "want" && !cmp);
+    bv.onclick = () => { Store.set(type, item.name, s === "visited" ? null : "visited"); renderCardButton(item, type); };
+    bw.onclick = () => { Store.set(type, item.name, s === "want" ? null : "want"); renderCardButton(item, type); };
   }
 
-  async function openParkCard(park) {
+  let cardCurrent = null; // {key, label} for the note button
+
+  async function openCard(item, type) {
+    const isPark = type === "parks";
     card.classList.add("open");
-    card.querySelector("h3").textContent = park.name + " National Park";
-    card.querySelector(".sub").textContent = park.state;
-    card.querySelector("a.wiki-link").href = "https://en.wikipedia.org/wiki/" + encodeURIComponent(park.wiki.replaceAll(" ", "_"));
+    const title = isPark ? item.name + " National Park" : item.name;
+    card.querySelector("h3").textContent = title;
+    card.querySelector(".sub").textContent = isPark ? item.state : item.place;
+    cardCurrent = { key: `${type}/${item.name}`, label: title };
     const photo = card.querySelector(".photo");
     photo.style.backgroundImage = "";
-    photo.textContent = "🏞️";
-    renderCardButton(park);
-    const url = await parkPhoto(park);
+    photo.textContent = isPark ? "🏞️" : "⭐";
+    renderCardButton(item, type);
+    const url = await parkPhoto(item);
     if (url) { photo.style.backgroundImage = `url(${url})`; photo.textContent = ""; }
   }
+
+  document.getElementById("card-note").onclick = () =>
+    cardCurrent && openNoteModal(cardCurrent.key, cardCurrent.label);
+
+  // ---- note modal (from/to months + free text) ----
+  const noteModal = document.getElementById("note-modal");
+  let noteKey = null;
+
+  function openNoteModal(key, label) {
+    noteKey = key;
+    document.getElementById("note-title").textContent = "Add note · " + label.replace(/<[^>]*>/g, "").trim();
+    document.getElementById("gnote-from").value = "";
+    document.getElementById("gnote-to").value = "";
+    document.getElementById("gnote-text").value = "";
+    document.getElementById("gnote-error").textContent = "";
+    noteModal.classList.add("open");
+  }
+
+  document.getElementById("gnote-save").onclick = () => {
+    const from = document.getElementById("gnote-from").value || null;
+    const to = document.getElementById("gnote-to").value || null;
+    const text = document.getElementById("gnote-text").value.trim();
+    if (!from && !text) {
+      document.getElementById("gnote-error").textContent = "Add a date, a note, or both.";
+      return;
+    }
+    Store.addNote(noteKey, from, to, text);
+    noteModal.classList.remove("open");
+  };
+  document.getElementById("note-close").onclick = () => noteModal.classList.remove("open");
+  noteModal.addEventListener("click", (e) => { if (e.target === noteModal) noteModal.classList.remove("open"); });
+
+  // ---- "just marked" toast with note shortcut ----
+  const toast = document.getElementById("mark-toast");
+  let toastTimer = null;
+  let toastTarget = null;
+
+  function showMarkToast(type, name, labelHTML) {
+    const s = Store.get(type, name);
+    if (!s) {
+      toast.style.display = "none";
+      return;
+    }
+    toastTarget = { key: `${type}/${name}`, label: labelHTML };
+    document.getElementById("toast-label").innerHTML = `${labelHTML} · ${STATUS_LABEL[s]}`;
+    toast.style.display = "flex";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.style.display = "none"; }, 6000);
+  }
+
+  document.getElementById("toast-note").onclick = () => {
+    if (toastTarget) openNoteModal(toastTarget.key, toastTarget.label);
+    toast.style.display = "none";
+  };
+  document.getElementById("toast-close").onclick = () => { toast.style.display = "none"; };
 
   card.querySelector(".close").onclick = () => card.classList.remove("open");
 
@@ -362,7 +459,21 @@
     .on("click", (event, d) => {
       if (dragMoved) return;
       event.stopPropagation();
-      openParkCard(d);
+      openCard(d, "parks");
+    });
+
+  landmarkPins
+    .on("mousemove", (event, d) => {
+      event.stopPropagation();
+      const sub = Store.comparing() ? compareSub("landmarks", d.name)
+        : STATUS_LABEL[Store.get("landmarks", d.name) || "none"] + " · click for details";
+      showTooltip(event, "⭐ " + d.name, sub);
+    })
+    .on("mouseout", hideTooltip)
+    .on("click", (event, d) => {
+      if (dragMoved) return;
+      event.stopPropagation();
+      openCard(d, "landmarks");
     });
 
   // ---- view toggle ----
