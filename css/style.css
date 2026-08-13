@@ -284,7 +284,7 @@ h3.territories {
 }
 #park-card a.wiki-link { font-size: 12px; color: var(--accent); text-decoration: none; }
 
-button.toggle-visited {
+button.toggle-visited, button.toggle-wish {
   background: var(--panel-2);
   color: var(--text);
   border: 1px solid #2b3760;
@@ -294,7 +294,7 @@ button.toggle-visited {
   cursor: pointer;
 }
 button.toggle-visited.is-visited { background: var(--visited); border-color: var(--visited); color: #1a1203; font-weight: 600; }
-button.toggle-visited.is-want { background: var(--want); border-color: var(--want); color: #082030; font-weight: 600; }
+button.toggle-visited.is-want, button.toggle-wish.is-want { background: var(--want); border-color: var(--want); color: #082030; font-weight: 600; }
 
 /* ---------- account modal ---------- */
 .modal-backdrop {
