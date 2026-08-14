@@ -547,14 +547,27 @@ h2.continent {
   margin-left: 6px;
   padding-left: 20px;
 }
-.tl-group .timeline-entry { margin-bottom: 10px; }
-/* Same month as the card above: tuck in close, hollow rail dot */
-.tl-group .timeline-entry.same-month { margin-top: -4px; }
-.timeline-entry.same-month::before {
-  background: var(--bg);
-  border: 2px solid var(--accent);
-  width: 8px;
-  height: 8px;
+.tl-group .timeline-entry { margin: 0 0 10px 18px; }
+
+/* Month subheading on the rail; entries tab in beneath it */
+.tl-month {
+  position: relative;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 16px 0 9px;
+}
+.tl-month:first-child { margin-top: 2px; }
+.tl-month::before {
+  content: "";
+  position: absolute;
+  left: -26px;
+  top: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
 }
 
 .timeline-entry {
@@ -564,17 +577,6 @@ h2.continent {
   border-radius: 12px;
   padding: 11px 40px 11px 14px;
   font-size: 13.5px;
-}
-.timeline-entry::before {
-  content: "";
-  position: absolute;
-  left: -26px;
-  top: 17px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid var(--bg);
 }
 .timeline-entry:hover { border-color: #3b4a7a; }
 
