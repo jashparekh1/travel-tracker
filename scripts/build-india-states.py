@@ -4,8 +4,8 @@
 Input: the district-level GeoJSON from github.com/udit-001/india-maps-data
 (geojson/india.geojson). Districts are dissolved into their state (st_nm),
 then each mainland unit is clipped to India's outline in
-data/countries-50m.json (de facto borders, so Jammu & Kashmir and Ladakh
-stop where the country polygon does). Slivers of the country polygon that
+data/countries-50m.json (run scripts/apply-india-claim.py first so that
+outline includes all of Jammu & Kashmir and Ladakh). Slivers of the country polygon that
 no state covers are handed to the nearest state so the states tile the
 country exactly — the globe hides India's own fill in All view and lets
 the states carry its color, just like the US. Island territories

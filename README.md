@@ -9,9 +9,10 @@ just a static site.
 - **Zoomable globe** (drag to spin, scroll to zoom) built with D3's orthographic projection
 - **Click to mark**: countries and states cycle *not yet → visited (orange) → lived (green)*
 - **US broken down by state**, drawn right on the globe
-- **India broken down too**: all 28 states + 8 union territories (built by
-  `scripts/build-india-states.py` from district data, clipped to the globe's
-  India outline)
+- **India broken down too**: all 28 states + 8 union territories, with
+  Jammu & Kashmir and Ladakh drawn in full. `scripts/apply-india-claim.py`
+  redraws India's outline to match, and `scripts/build-india-states.py`
+  builds the states layer from district data
 - **All 63 national parks** as pins (zoom in on the US) — click one for a photo
   (pulled from Wikipedia, free) and a "mark as visited" button
 - **Major cities** appear as labeled dots the deeper you zoom (importance-ranked
