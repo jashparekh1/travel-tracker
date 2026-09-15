@@ -136,7 +136,10 @@ body.page .topbar { position: sticky; }
 
 .country { stroke: none; }
 .lake { fill: var(--ocean); stroke: #2b3760; stroke-width: 0.5; }
-.state { stroke: #0b1020; stroke-opacity: 0.8; stroke-width: 0.6; }
+/* State lines are a faint light hairline so they read as subdivisions
+   inside a country, not as more national borders (the dark border mesh is
+   drawn on top of this layer and carries the country outline). */
+.state { stroke: #ffffff; stroke-opacity: 0.28; stroke-width: 0.45; }
 .country, .state { cursor: pointer; }
 .country:hover, .state:hover { stroke: #e8eefb; stroke-opacity: 1; stroke-width: 1; }
 
