@@ -11,7 +11,8 @@
     return;
   }
 
-  const statsLine = (c) => `🌍 ${c.countries} · 🇺🇸 ${c.states} · 🏞️ ${c.parks} · ⭐ ${c.landmarks || 0}`;
+  const statsLine = (c) =>
+    `🌍 ${c.countries} · 🇺🇸 ${c.states} · 🇮🇳 ${c.indiaStates || 0} · 🏞️ ${c.parks} · ⭐ ${c.landmarks || 0}`;
 
   async function renderModal() {
     if (!Store.cloud.user()) {
@@ -45,7 +46,7 @@
     let html =
       `<p class="acct-line">You are <b>@${Store.cloud.profile()}</b> — share that with friends so they can add you.</p>` +
       `<div class="friend-row you"><span class="friend-name">you</span>` +
-      `<span class="friend-stats">${statsLine({ countries: mine.countries, states: mine.states, parks: mine.parks })}</span></div>`;
+      `<span class="friend-stats">${statsLine(mine)}</span></div>`;
 
     for (const f of friends) {
       const c = Store.cloud.countsFromDoc(f.doc);

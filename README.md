@@ -1,7 +1,7 @@
 # 🌍 My Travels
 
 A personal travel tracker: an interactive globe where I color in the countries,
-US states, and US national parks I've been to. No backend, no accounts, no cost —
+US states, Indian states, and US national parks I've been to. No backend, no accounts, no cost —
 just a static site.
 
 ## Features
@@ -9,14 +9,17 @@ just a static site.
 - **Zoomable globe** (drag to spin, scroll to zoom) built with D3's orthographic projection
 - **Click to mark**: countries and states cycle *not yet → visited (orange) → lived (green)*
 - **US broken down by state**, drawn right on the globe
+- **India broken down too**: all 28 states + 8 union territories (built by
+  `scripts/build-india-states.py` from district data, clipped to the globe's
+  India outline)
 - **All 63 national parks** as pins (zoom in on the US) — click one for a photo
   (pulled from Wikipedia, free) and a "mark as visited" button
 - **Major cities** appear as labeled dots the deeper you zoom (importance-ranked
   by Natural Earth cartographers, capitals bolded) — display-only atlas dressing,
   built by `scripts/build-cities.py` (rank cutoff lives there)
-- **Visited page** with tabs: Countries (grouped by continent), US States,
-  National Parks — with flags
-- Live stats: countries / states / parks counts
+- **Visited page** with tabs: Countries (grouped by continent), States (US +
+  India), National Parks — with flags
+- Live stats: countries / US states / Indian states / parks counts
 
 ## Running it
 

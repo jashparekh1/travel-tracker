@@ -1,5 +1,6 @@
-// US state lists + flag codes. Country data (continents, flags, display
-// names) is generated into js/countries-meta.js — don't hand-edit that one.
+// US + India state lists and flag codes. Country data (continents, flags,
+// display names) is generated into js/countries-meta.js — don't hand-edit
+// that one.
 
 // The 50 US states (denominator for the "states visited" stat).
 // DC and Puerto Rico are on the map and clickable, just not counted here.
@@ -15,7 +16,33 @@ window.US_STATES = [
 ];
 window.US_EXTRAS = ["District of Columbia", "Puerto Rico"];
 
+// India: 28 states + 8 union territories (geometry in data/india-states.json,
+// built by scripts/build-india-states.py). Both lists count toward the
+// "India" stat.
+window.INDIA_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
+  "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
+  "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland",
+  "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal",
+];
+window.INDIA_UTS = [
+  "Andaman & Nicobar Islands", "Chandigarh", "Dadra & Nagar Haveli and Daman & Diu",
+  "Delhi", "Jammu & Kashmir", "Ladakh", "Lakshadweep", "Puducherry",
+];
+window.INDIA_ALL = window.INDIA_STATES.concat(window.INDIA_UTS);
+
+// Countries drawn as clickable subdivisions. In All view the globe hides
+// the country's own fill and lets these carry its color; the country's
+// status is derived from them unless set explicitly.
+window.SUBDIVIDED = {
+  "United States of America": window.US_STATES.concat(window.US_EXTRAS),
+  "India": window.INDIA_ALL,
+};
+window.ALL_STATES = [].concat(...Object.values(window.SUBDIVIDED));
+
 // Flag image codes (img/flags/<code>.png). "" = no flag available.
+// Indian states have no official flags, so they aren't listed here.
 window.US_STATE_CODES = {
   "Alabama": "us-al", "Alaska": "us-ak", "Arizona": "us-az", "Arkansas": "us-ar",
   "California": "us-ca", "Colorado": "us-co", "Connecticut": "us-ct",

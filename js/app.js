@@ -1,5 +1,5 @@
 // Interactive globe: drag to rotate, scroll/pinch to zoom.
-// Countries + US states cycle none -> visited -> lived on click.
+// Countries + US / Indian states cycle none -> visited -> lived on click.
 // National park pins appear once zoomed in; click for photo + toggle.
 
 (async function () {
@@ -20,12 +20,15 @@
   let zoomK = 1;
   const PARK_ZOOM = 2.5; // pins appear past this zoom level
 
-  const [world, statesGeo, lakesGeo, citiesRaw] = await Promise.all([
+  const [world, usStatesGeo, indiaStatesGeo, lakesGeo, citiesRaw] = await Promise.all([
     d3.json("data/countries-50m.json"),
     d3.json("data/us-states.json"),
+    d3.json("data/india-states.json"),
     d3.json("data/lakes-50m.json"),
     d3.json("data/cities.json?v=2"),
   ]);
+  // One layer for every clickable subdivision (US states + Indian states/UTs).
+  const stateFeatures = usStatesGeo.features.concat(indiaStatesGeo.features);
   // Phones get ranks 0-2 only; desktop keeps 0-3.
   const MAX_CITY_RANK = window.matchMedia("(max-width: 640px)").matches ? 2 : 3;
   const cities = citiesRaw
@@ -44,7 +47,7 @@
     .attr("class", "country");
 
   const statePaths = svg.append("g").selectAll("path")
-    .data(statesGeo.features).join("path")
+    .data(stateFeatures).join("path")
     .attr("class", "state");
 
 
@@ -132,11 +135,12 @@
     const cmp = Store.comparing();
     countryPaths.attr("class", (d) => {
       const n = countryName(d);
-      // In All view the states layer carries the US's color; painting the
-      // country polygon too bleeds through lake cutouts and coastline
-      // fringes the state shapes don't exactly cover.
+      // In All view the states layer carries the color of subdivided
+      // countries (US, India); painting the country polygon too bleeds
+      // through lake cutouts and coastline fringes the state shapes don't
+      // exactly cover.
       const cls = viewMode === "parks" || viewMode === "landmarks" ? "status-none"
-        : viewMode === "all" && n === "United States of America" ? "status-none"
+        : viewMode === "all" && window.SUBDIVIDED[n] ? "status-none"
         : regionClass("countries", n);
       return "country " + cls;
     });
@@ -169,7 +173,8 @@
       document.getElementById("cmp-unit").textContent =
         viewMode === "parks" ? "counting national parks"
         : viewMode === "landmarks" ? "counting wonders"
-        : `counting countries · states: ${cc.states.both} both, ${cc.states.a} / ${cc.states.b} only`;
+        : `counting countries · US states: ${cc.states.both} both, ${cc.states.a} / ${cc.states.b} only` +
+          ` · India: ${cc.indiaStates.both} both, ${cc.indiaStates.a} / ${cc.indiaStates.b} only`;
     }
     svg.classed("parks-mode", viewMode === "parks");
     svg.classed("wonders-mode", viewMode === "landmarks");
@@ -182,6 +187,7 @@
       `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
       (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
+      `<span>🇮🇳 <b>${c.indiaStates}</b>/${c.indiaStatesTotal} states</span>` +
       `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>` +
       `<span>⭐ <b>${c.landmarks}</b>/${c.landmarksTotal} wonders</span>`;
   }
@@ -313,7 +319,7 @@
   const countrySub = (n) => {
     if (Store.comparing()) return compareSub("countries", n);
     if (viewMode === "parks" || viewMode === "landmarks") return "switch to All to edit";
-    if (n === "United States of America" && viewMode === "all") return "Click your states instead";
+    if (window.SUBDIVIDED[n] && viewMode === "all") return "Click your states instead";
     return regionTooltip("countries", n);
   };
 
@@ -326,7 +332,7 @@
     .on("click", (event, d) => {
       if (dragMoved || viewMode === "parks" || viewMode === "landmarks") return;
       const n = countryName(d);
-      if (n === "United States of America" && viewMode === "all") return; // states handle the US
+      if (window.SUBDIVIDED[n] && viewMode === "all") return; // states handle it
       Store.cycle("countries", n);
       showTooltip(event, flagImg("countries", n) + displayName(n), countrySub(n));
       showMarkToast("countries", n, flagImg("countries", n) + " " + displayName(n));

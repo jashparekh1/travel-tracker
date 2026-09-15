@@ -1,4 +1,5 @@
-// Visited page: three tabs (Countries by continent, US States, National Parks).
+// Visited page: tabs for Countries (by continent), States (US + India),
+// National Parks and Wonders.
 // Everything is clickable and shares the same Store as the globe.
 
 (function () {
@@ -73,6 +74,10 @@
   window.US_STATES.forEach((n) => stateRoot.appendChild(chip("states", n)));
   const extrasRoot = document.getElementById("extras-list");
   window.US_EXTRAS.forEach((n) => extrasRoot.appendChild(chip("states", n)));
+  const indiaRoot = document.getElementById("india-state-list");
+  window.INDIA_STATES.forEach((n) => indiaRoot.appendChild(chip("states", n)));
+  const utRoot = document.getElementById("india-ut-list");
+  window.INDIA_UTS.forEach((n) => utRoot.appendChild(chip("states", n)));
 
   // ---- parks tab (cards with lazy-loaded Wikipedia photos) ----
   const parkRoot = document.getElementById("park-list");
@@ -147,6 +152,7 @@
       `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
       (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
+      `<span>🇮🇳 <b>${c.indiaStates}</b>/${c.indiaStatesTotal} states</span>` +
       `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>` +
       `<span>⭐ <b>${c.landmarks}</b>/${c.landmarksTotal} wonders</span>`;
     document.getElementById("stats-landmarks").innerHTML =
@@ -156,7 +162,9 @@
       (c.territories ? ` (plus <b>${c.territories}</b> territories)` : "") +
       `. Click to cycle: not yet → visited → lived → want to go.`;
     document.getElementById("stats-states").innerHTML =
-      `Visited <b>${c.states}</b> of <b>${c.statesTotal}</b> states. Click to cycle: not yet → visited → lived → want to go.`;
+      `Visited <b>${c.states}</b> of <b>${c.statesTotal}</b> US states and ` +
+      `<b>${c.indiaStates}</b> of <b>${c.indiaStatesTotal}</b> Indian states & union territories. ` +
+      `Click to cycle: not yet → visited → lived → want to go.`;
     document.getElementById("stats-parks").innerHTML =
       `Visited <b>${c.parks}</b> of <b>${c.parksTotal}</b> national parks.`;
   }

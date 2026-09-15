@@ -44,11 +44,13 @@ window.Store = (() => {
     return seed[type][name] || null;
   }
 
-  // Country status; the US is derived from its states unless set explicitly.
+  // Country status; the US and India are derived from their states unless
+  // set explicitly.
   function country(name) {
     const explicit = raw("countries", name);
-    if (name !== "United States of America" || explicit) return explicit;
-    const statuses = window.US_STATES.concat(window.US_EXTRAS).map((s) => raw("states", s));
+    const subs = window.SUBDIVIDED[name];
+    if (!subs || explicit) return explicit;
+    const statuses = subs.map((s) => raw("states", s));
     if (statuses.includes("lived")) return "lived";
     if (statuses.includes("visited")) return "visited";
     if (statuses.includes("want")) return "want";
@@ -132,11 +134,13 @@ window.Store = (() => {
     const c = sovereign.filter((n) => BEEN(country(n))).length;
     const t = names.filter((n) => !window.COUNTRY_META[n][2] && BEEN(country(n))).length;
     const s = window.US_STATES.filter((n) => BEEN(raw("states", n))).length;
+    const ind = window.INDIA_ALL.filter((n) => BEEN(raw("states", n))).length;
     const p = window.PARKS.filter((pk) => raw("parks", pk.name) === "visited").length;
     const l = window.LANDMARKS.filter((lm) => raw("landmarks", lm.name) === "visited").length;
     return {
       countries: c, countriesTotal: sovereign.length, territories: t,
       states: s, statesTotal: window.US_STATES.length,
+      indiaStates: ind, indiaStatesTotal: window.INDIA_ALL.length,
       parks: p, parksTotal: window.PARKS.length,
       landmarks: l, landmarksTotal: window.LANDMARKS.length,
     };
@@ -149,7 +153,7 @@ window.Store = (() => {
       const v = raw("countries", n);
       if (v) out.countries[n] = v;
     }
-    for (const n of window.US_STATES.concat(window.US_EXTRAS)) {
+    for (const n of window.ALL_STATES) {
       const v = raw("states", n);
       if (v) out.states[n] = v;
     }
@@ -353,23 +357,26 @@ window.Store = (() => {
     const c = doc.countries || {}, s = doc.states || {}, p = doc.parks || {};
     const sovereign = Object.keys(window.COUNTRY_META).filter((n) => window.COUNTRY_META[n][2]);
     let countries = sovereign.filter((n) => BEEN(c[n])).length;
-    const usFromStates = window.US_STATES.concat(window.US_EXTRAS).some((n) => BEEN(s[n]));
-    if (usFromStates && !BEEN(c["United States of America"])) countries += 1;
+    for (const [cn, subs] of Object.entries(window.SUBDIVIDED)) {
+      if (!BEEN(c[cn]) && subs.some((n) => BEEN(s[n]))) countries += 1;
+    }
     return {
       countries,
       states: window.US_STATES.filter((n) => BEEN(s[n])).length,
+      indiaStates: window.INDIA_ALL.filter((n) => BEEN(s[n])).length,
       parks: Object.values(p).filter((v) => v === "visited").length,
       landmarks: Object.values(doc.landmarks || {}).filter((v) => v === "visited").length,
     };
   }
 
   // ---- compare mode (any two people from {me + my friends}) ----
-  // Country status inside an arbitrary doc (same US-derivation rule).
+  // Country status inside an arbitrary doc (same states-derivation rule).
   function docCountry(doc, name) {
     const explicit = (doc.countries || {})[name];
-    if (name !== "United States of America" || explicit) return explicit || null;
+    const subs = window.SUBDIVIDED[name];
+    if (!subs || explicit) return explicit || null;
     const s = doc.states || {};
-    return window.US_STATES.concat(window.US_EXTRAS).some((n) => BEEN(s[n])) ? "visited" : null;
+    return subs.some((n) => BEEN(s[n])) ? "visited" : null;
   }
 
   function docStatus(doc, type, name) {
@@ -422,6 +429,7 @@ window.Store = (() => {
       countries: count("countries",
         Object.keys(window.COUNTRY_META).filter((n) => window.COUNTRY_META[n][2])),
       states: count("states", window.US_STATES),
+      indiaStates: count("states", window.INDIA_ALL),
       parks: count("parks", window.PARKS.map((p) => p.name)),
       landmarks: count("landmarks", window.LANDMARKS.map((l) => l.name)),
     };

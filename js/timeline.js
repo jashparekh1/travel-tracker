@@ -4,9 +4,12 @@
   // Searchable place list; labels must be unique (e.g. two Georgias).
   const placeKeys = {};
   for (const n of Object.keys(window.COUNTRY_META)) placeKeys[displayName(n)] = "countries/" + n;
-  for (const n of window.US_STATES.concat(window.US_EXTRAS)) {
-    const label = n in placeKeys ? `${n} (US state)` : n;
-    placeKeys[label] = "states/" + n;
+  const STATE_TAG = { "United States of America": "US state", "India": "India" };
+  for (const [country, subs] of Object.entries(window.SUBDIVIDED)) {
+    for (const n of subs) {
+      const label = n in placeKeys ? `${n} (${STATE_TAG[country]})` : n;
+      placeKeys[label] = "states/" + n;
+    }
   }
   for (const p of window.PARKS) placeKeys[`${p.name} National Park`] = "parks/" + p.name;
   for (const l of window.LANDMARKS) placeKeys[l.name] = "landmarks/" + l.name;
@@ -189,6 +192,7 @@
       `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
       (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
+      `<span>🇮🇳 <b>${c.indiaStates}</b>/${c.indiaStatesTotal} states</span>` +
       `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>` +
       `<span>⭐ <b>${c.landmarks}</b>/${c.landmarksTotal} wonders</span>`;
   }
