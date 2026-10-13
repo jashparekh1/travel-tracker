@@ -147,10 +147,17 @@
   landmarkPins.append("text").attr("class", "park-label")
     .attr("text-anchor", "middle").text((d) => d.name);
 
+  // Pin groups: pins too close to tell apart on screen merge into one
+  // count bubble until you zoom in. Drawn above the pins.
+  const groupsLayer = svg.append("g").attr("class", "pin-groups");
+  const GROUP_PX = 26;          // pins closer than this (screen px) merge
+  const GROUP_MAX_ZOOM = 14;    // past this, always show individual pins
+
   // Label widths for the declutter pass, measured once per name.
   const measureCtx = document.createElement("canvas").getContext("2d");
   const fontFamily = getComputedStyle(document.body).fontFamily;
-  measureCtx.font = `600 10.5px ${fontFamily}`;
+  const PIN_FONT = `600 10.5px ${fontFamily}`;
+  measureCtx.font = PIN_FONT;
   window.PARKS.concat(window.LANDMARKS).forEach((d) => { d._w = measureCtx.measureText(d.name).width; });
   cities.forEach((d) => {
     measureCtx.font = d.cap ? `700 10.5px ${fontFamily}` : `500 10px ${fontFamily}`;
@@ -286,7 +293,7 @@
       if (!show && !wasShown) return;
       pins.each(function (d) {
         d._p = show && d3.geoDistance([d.lon, d.lat], [cx, cy]) <= 1.45 ? projection([d.lon, d.lat]) : null;
-        if (d._p) visiblePins.push({ d, type, label: this.querySelector("text.park-label") });
+        if (d._p) visiblePins.push({ d, type, node: this, label: this.querySelector("text.park-label") });
       });
       pins.attr("display", (d) => (d._p ? null : "none"))
         .attr("transform", (d) => (d._p ? `translate(${d._p[0]},${d._p[1]}) scale(${pinScale})` : null));
@@ -296,16 +303,66 @@
     parksShown = showParks;
     landmarksShown = showLandmarks;
 
-    // Names sit centered just above the pin head, at a constant on-screen
-    // size despite the pin scaling.
-    const labelY = -(25 * pinScale + 4);
-    for (const { d } of visiblePins) {
+    // Group pins that would overlap. Your marked places seed groups first
+    // so a group sits where your visited pin is.
+    const mine = (v) => (Store.get(v.type, v.d.name) ? 0 : 1);
+    visiblePins.sort((a, b) => mine(a) - mine(b));
+    const groups = [];
+    for (const v of visiblePins) {
+      const [x, y] = v.d._p;
+      const g = zoomK < GROUP_MAX_ZOOM &&
+        groups.find((g) => Math.hypot(g.x - x, g.y - y) < GROUP_PX);
+      if (g) g.members.push(v);
+      else groups.push({ x, y, members: [v] });
+    }
+    const singles = [];
+    const multi = [];
+    for (const g of groups) {
+      if (g.members.length === 1) { singles.push(g.members[0]); continue; }
+      for (const m of g.members) m.node.setAttribute("display", "none");
+      g.x = d3.mean(g.members, (m) => m.d._p[0]);
+      g.y = d3.mean(g.members, (m) => m.d._p[1]);
+      g.r = 9 + Math.min(6, Math.sqrt(g.members.length) * 1.6);
+      // Name the group when every pin shares a state / place ("Utah · 5").
+      const regions = new Set(g.members.map((m) => m.d.state || m.d.place));
+      g.region = regions.size === 1 ? [...regions][0] : "";
+      g.marked = g.members.filter((m) => mine(m) === 0).length;
+      multi.push(g);
+    }
+
+    // Pins and bubbles claim their space first, then names.
+    for (const { d } of singles) {
       const [x, y] = d._p;
       taken.push([x - 9 * pinScale, y - 25 * pinScale, x + 9 * pinScale, y]);
     }
-    const mine = (v) => (Store.get(v.type, v.d.name) ? 0 : 1);
-    visiblePins.sort((a, b) => mine(a) - mine(b));
-    for (const v of visiblePins) {
+    for (const g of multi) taken.push([g.x - g.r, g.y - g.r, g.x + g.r, g.y + g.r]);
+
+    const groupNodes = groupsLayer.selectAll("g.pin-group").data(multi).join((enter) => {
+      const e = enter.append("g").attr("class", "pin-group");
+      e.append("circle");
+      e.append("text").attr("class", "pin-group-count").attr("text-anchor", "middle").attr("dy", "0.35em");
+      e.append("text").attr("class", "park-label").attr("text-anchor", "middle");
+      return e;
+    });
+    groupNodes
+      .classed("has-marked", (g) => g.marked > 0)
+      .attr("transform", (g) => `translate(${g.x},${g.y})`);
+    groupNodes.select("circle").attr("r", (g) => g.r);
+    groupNodes.select(".pin-group-count").text((g) => g.members.length);
+    measureCtx.font = PIN_FONT;
+    groupNodes.select(".park-label").each(function (g) {
+      const text = g.region && `${g.region} · ${g.members.length}`;
+      const w = text ? measureCtx.measureText(text).width / 2 + 2 : 0;
+      const ok = text && claim([g.x - w, g.y - g.r - 15, g.x + w, g.y - g.r - 2]);
+      this.textContent = text;
+      this.setAttribute("y", -g.r - 5);
+      this.style.display = ok ? "block" : "none";
+    });
+
+    // Names sit centered just above the pin head, at a constant on-screen
+    // size despite the pin scaling.
+    const labelY = -(25 * pinScale + 4);
+    for (const v of singles) {
       const [x, y] = v.d._p;
       const hw = v.d._w / 2 + 2;
       const ok = claim([x - hw, y + labelY - 10, x + hw, y + labelY + 3]);
@@ -584,6 +641,59 @@
       openNoteModal("landmarks/" + d.name, d.name);
     });
 
+  // Pin groups: hover lists what's inside, click flies in until it splits.
+  groupsLayer
+    .on("mousemove", (event) => {
+      const g = d3.select(event.target.closest("g.pin-group")).datum();
+      if (!g) return;
+      const names = g.members.map((m) => (m.type === "parks" ? "🏞️ " : "⭐ ") + m.d.name);
+      const list = names.slice(0, 8).join("<br>") +
+        (names.length > 8 ? `<br>+${names.length - 8} more` : "");
+      tooltip.style.display = "block";
+      tooltip.innerHTML = `<div>${g.region || "Nearby places"} · ${g.members.length}</div>` +
+        `<div class="tt-status">${list}</div><div class="tt-status tt-note">click to zoom in</div>`;
+      moveTooltip(event);
+    })
+    .on("mouseout", hideTooltip)
+    .on("click", (event) => {
+      if (dragMoved) return;
+      event.stopPropagation();
+      const g = d3.select(event.target.closest("g.pin-group")).datum();
+      if (!g) return;
+      hideTooltip();
+      // Fly to the group's center; zoom far enough that its pins spread
+      // past the grouping distance (spread scales linearly with zoom).
+      const center = projection.invert([g.x, g.y]);
+      const spread = d3.max(g.members, (m) => Math.hypot(m.d._p[0] - g.x, m.d._p[1] - g.y)) || 1;
+      const k = Math.min(GROUP_MAX_ZOOM, Math.max(zoomK * 2, zoomK * (GROUP_PX * 1.6) / spread));
+      flyTo(center, k);
+    });
+
+  function setZoom(k) {
+    zoomK = k;
+    projection.scale(baseScale() * k);
+    programmaticZoom = true;
+    svg.call(zoom.transform, d3.zoomIdentity.scale(k));
+    programmaticZoom = false;
+  }
+
+  function flyTo([lon, lat], k) {
+    const r0 = projection.rotate();
+    let lon1 = -lon;
+    while (lon1 - r0[0] > 180) lon1 -= 360;
+    while (lon1 - r0[0] < -180) lon1 += 360;
+    const rot = d3.interpolate([r0[0], r0[1]], [lon1, -lat]);
+    const k0 = zoomK;
+    const start = performance.now();
+    (function step(now) {
+      const t = d3.easeCubicInOut(Math.min(1, (now - start) / 650));
+      projection.rotate(rot(t));
+      setZoom(k0 * Math.pow(k / k0, t));
+      render();
+      if (t < 1) requestAnimationFrame(step);
+    })(start);
+  }
+
   // ---- view toggle ----
   const segButtons = document.querySelectorAll("#view-toggle button");
   function setViewMode(mode) {
@@ -610,12 +720,8 @@
     if (confirm("Discard local edits and go back to the committed data file?")) Store.clearLocal();
   };
   document.getElementById("btn-reset").onclick = () => {
-    programmaticZoom = true;
-    svg.call(zoom.transform, d3.zoomIdentity);
-    programmaticZoom = false;
-    lastTransform = d3.zoomIdentity;
-    zoomK = 1;
-    projection.rotate([95, -38]).scale(baseScale());
+    setZoom(1);
+    projection.rotate([95, -38]);
     render();
   };
 

@@ -197,6 +197,19 @@ body.page .topbar { position: sticky; }
 .park.cmp-none .pin-body { fill: #7c8db0; }
 .park:hover .pin-body { stroke: #fff; }
 
+/* Pin groups: count bubble for pins too close together to tell apart */
+.pin-group { cursor: pointer; }
+.pin-group circle { fill: #7c8db0; stroke: #0b1020; stroke-width: 1.5; }
+.pin-group.has-marked circle { fill: #ef4444; }
+.pin-group:hover circle { stroke: #fff; }
+.pin-group-count {
+  font-size: 11px;
+  font-weight: 700;
+  fill: #0b1020;
+  pointer-events: none;
+}
+.pin-group.has-marked .pin-group-count { fill: #fff; }
+
 .flag {
   width: 20px;
   height: auto;
@@ -215,8 +228,6 @@ h3.territories {
   margin: 12px 0 8px;
   font-weight: 600;
 }
-.chip-grid.terr .chip { opacity: 0.85; font-size: 12px; padding: 5px 11px; }
-.chip-grid.terr .flag { width: 17px; }
 
 /* ---------- floating UI ---------- */
 .legend {
@@ -447,62 +458,148 @@ h2.continent {
   margin: 22px 0 10px;
 }
 
-.chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--panel);
-  border: 1px solid #232c49;
-  border-radius: 999px;
-  padding: 6px 13px;
-  font-size: 13px;
-  color: var(--text);
+/* ---------- postage stamps (Visited page) ----------
+   Perforated edge: a grid of transparent holes masked out of the stamp,
+   one per --hole spacing, centered on the edges ("round" fits a whole
+   number of holes); the content-box layer keeps the interior solid. */
+.stamp {
+  --r: 4px;
+  --paper: #1a2238;
+  --ink: var(--muted);
+  --frame: #2c3656;
+  position: relative;
+  display: block;
+  padding: calc(2 * var(--r));
+  background: var(--paper);
+  border: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
   cursor: pointer;
   user-select: none;
+  -webkit-mask:
+    radial-gradient(var(--r) at var(--r) var(--r), #0000 97%, #000)
+      calc(-1 * var(--r)) calc(-1 * var(--r)) / calc(3 * var(--r)) calc(3 * var(--r)) round,
+    linear-gradient(#000 0 0) content-box;
+  mask:
+    radial-gradient(var(--r) at var(--r) var(--r), #0000 97%, #000)
+      calc(-1 * var(--r)) calc(-1 * var(--r)) / calc(3 * var(--r)) calc(3 * var(--r)) round,
+    linear-gradient(#000 0 0) content-box;
+  transition: transform 0.15s ease, background-color 0.2s;
 }
-.chip:hover { border-color: #3b4a7a; }
-.chip .dot { width: 9px; height: 9px; border-radius: 50%; background: #4a5674; flex: none; }
-/* Marked chips are shaded in their status color so state reads at a glance */
-.chip.visited {
-  background: color-mix(in srgb, var(--visited) 30%, var(--panel));
-  border-color: color-mix(in srgb, var(--visited) 75%, transparent);
+.stamp:hover { transform: translateY(-2px) rotate(-1deg); }
+.stamp.visited, .stamp.lived { transform: rotate(var(--tilt, 0deg)); }
+.stamp.visited:hover, .stamp.lived:hover { transform: translateY(-2px) rotate(var(--tilt, 0deg)); }
+.stamp-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  padding: 10px 6px 9px;
+  border: 1.5px dashed var(--frame);
 }
-.chip.visited .dot { background: var(--visited); }
-.chip.lived {
-  background: color-mix(in srgb, var(--lived) 30%, var(--panel));
-  border-color: color-mix(in srgb, var(--lived) 75%, transparent);
+.stamp-art { height: 30px; display: flex; align-items: center; }
+.stamp-flag {
+  height: 28px;
+  width: auto;
+  max-width: 46px;
+  box-shadow: 0 0 0 1px #0004;
+  filter: grayscale(0.9) brightness(0.75);
 }
-.chip.lived .dot { background: var(--lived); }
-.chip.want {
-  background: color-mix(in srgb, var(--want) 30%, var(--panel));
-  border-color: color-mix(in srgb, var(--want) 75%, transparent);
+.stamp-mono {
+  font: 700 19px/1 Georgia, "Times New Roman", serif;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
 }
-.chip.want .dot { background: var(--want); }
+.stamp-name {
+  font: 600 11.5px/1.25 Georgia, "Times New Roman", serif;
+  letter-spacing: 0.02em;
+}
 
-/* park cards grid */
+/* Marked stamps turn to paper with a frame in the status color. */
+.stamp.visited, .stamp.lived { --paper: #f3ead6; --ink: #2b2417; }
+.stamp.visited { --frame: #d58a12; --postmark: #b4540a; }
+.stamp.lived { --frame: #1f9d4c; --postmark: #157a3a; }
+.stamp.want { --paper: #1f3152; --ink: #cfe8fa; --frame: var(--want); --postmark: var(--want); }
+.stamp.visited .stamp-frame, .stamp.lived .stamp-frame, .stamp.want .stamp-frame { border-style: solid; }
+.stamp.visited .stamp-flag, .stamp.lived .stamp-flag, .stamp.want .stamp-flag { filter: none; }
+
+/* Postmark: ringed, tilted ink stamp with cancellation lines, struck
+   across the top corner of the art like a real cancellation. */
+.postmark {
+  position: absolute;
+  right: 2px;
+  top: 4px;
+  width: 46px;
+  height: 46px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--postmark);
+  box-shadow: inset 0 0 0 2px var(--paper), inset 0 0 0 3px var(--postmark);
+  color: var(--postmark);
+  font: 800 8.5px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-18deg);
+  opacity: 0.8;
+  pointer-events: none;
+}
+.postmark::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 13px;
+  width: 26px;
+  height: 18px;
+  background: repeating-linear-gradient(var(--postmark) 0 1.5px, transparent 1.5px 6px);
+  opacity: 0.7;
+}
+.stamp.visited .postmark, .stamp.lived .postmark, .stamp.want .postmark { display: flex; }
+.stamp.want .postmark { border-style: dashed; opacity: 0.7; }
+
+.stamp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 12px;
+}
+.stamp-grid.terr { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+.stamp-grid.terr .stamp { opacity: 0.85; }
+.stamp-grid.terr .stamp-name { font-size: 10.5px; }
+.stamp-grid.terr .stamp-flag { height: 22px; }
+
+/* Park / wonder stamps: the photo is the stamp art. */
 .park-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
-.park-tile {
-  background: var(--panel);
-  border: 1px solid #232c49;
-  border-radius: 12px;
-  overflow: hidden;
-}
-.park-tile.visited { border-color: color-mix(in srgb, var(--visited) 60%, transparent); }
+.park-tile.stamp { --r: 6px; cursor: default; text-align: left; }
+.park-tile .stamp-frame { align-items: stretch; gap: 0; padding: 6px; position: relative; }
 .park-tile .photo {
-  width: 100%; height: 110px;
+  width: 100%; height: 120px;
   background: var(--panel-2) center/cover no-repeat;
   display: flex; align-items: center; justify-content: center;
   font-size: 26px; color: var(--muted);
+  filter: grayscale(0.7) brightness(0.8);
 }
-.park-tile .body { padding: 10px 12px 12px; }
-.park-tile h3 { font-size: 13.5px; margin-bottom: 1px; }
-.park-tile .sub { color: var(--muted); font-size: 11.5px; margin-bottom: 9px; }
+.park-tile.visited .photo, .park-tile.lived .photo, .park-tile.want .photo { filter: none; }
+.park-tile .denom {
+  position: absolute;
+  top: 10px; left: 10px;
+  padding: 1px 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 11px/1.4 Georgia, "Times New Roman", serif;
+}
+.park-tile .body { padding: 9px 4px 3px; }
+.park-tile h3 { font: 600 13.5px/1.25 Georgia, "Times New Roman", serif; margin-bottom: 1px; color: var(--ink); }
+.park-tile.stamp:not(.visited):not(.lived) h3 { color: var(--text); }
+.park-tile .sub { color: var(--ink); opacity: 0.75; font-size: 11.5px; margin-bottom: 9px; }
+.park-tile .postmark { right: 10px; bottom: auto; top: 96px; width: 58px; height: 58px; font-size: 9.5px; }
+.park-tile .postmark::before { top: 18px; }
 
 .footer-note { margin-top: 34px; color: var(--muted); font-size: 12.5px; }
 
