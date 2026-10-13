@@ -534,8 +534,10 @@ h2.continent {
   width: 46px;
   height: 46px;
   display: none;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   border-radius: 50%;
   border: 2px solid var(--postmark);
   box-shadow: inset 0 0 0 2px var(--paper), inset 0 0 0 3px var(--postmark);
@@ -558,6 +560,9 @@ h2.continent {
   opacity: 0.7;
 }
 .stamp.visited .postmark, .stamp.lived .postmark, .stamp.want .postmark { display: flex; }
+.postmark b { font-weight: 800; }
+.postmark i { font-size: 7px; font-weight: 700; font-style: normal; letter-spacing: 0.04em; }
+.park-tile .postmark i { font-size: 8px; }
 .stamp.want .postmark { border-style: dashed; opacity: 0.7; }
 
 .stamp-grid {
@@ -569,6 +574,63 @@ h2.continent {
 .stamp-grid.terr .stamp { opacity: 0.85; }
 .stamp-grid.terr .stamp-name { font-size: 10.5px; }
 .stamp-grid.terr .stamp-flag { height: 22px; }
+
+/* Photo art for park / wonder stamps in the passport. */
+.stamp-photo {
+  width: 52px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--panel-2) center/cover no-repeat;
+  box-shadow: 0 0 0 1px #0004;
+  font-size: 16px;
+}
+
+/* ---------- passport view ---------- */
+.view-switch { display: inline-flex; margin: 6px 0 16px; }
+.stamp.in-passport { cursor: default; }
+.passport-cover {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  border-radius: 6px 14px 14px 6px;
+  background: linear-gradient(135deg, #3a1420, #22101a);
+  box-shadow: inset 6px 0 0 #00000040;
+  color: #e7c873;
+}
+.passport-cover .crest { font-size: 34px; filter: sepia(1) saturate(2.5) hue-rotate(5deg); }
+.cover-title {
+  font: 700 22px/1.1 Georgia, "Times New Roman", serif;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+.cover-sub { margin-top: 4px; font-size: 12.5px; color: #d9c18a; opacity: 0.85; }
+.passport-empty { color: var(--muted); font-size: 13.5px; margin: 6px 2px 20px; max-width: 560px; }
+
+/* Each year is a passport page: faint guilloche rings on navy paper, with
+   a darker spine on the left edge. */
+.passport-page {
+  position: relative;
+  padding: 16px 18px 20px 26px;
+  margin-bottom: 18px;
+  border: 1px solid #263052;
+  border-radius: 4px 12px 12px 4px;
+  background:
+    repeating-radial-gradient(circle at 85% 115%, #ffffff06 0 1px, transparent 1px 8px),
+    linear-gradient(90deg, #00000038, transparent 22px),
+    #141c33;
+}
+.passport-page header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px dashed #2c3656;
+  padding-bottom: 8px;
+}
+.passport-page h2 { font: 700 26px/1 Georgia, "Times New Roman", serif; color: var(--text); }
+.passport-page header span { color: var(--muted); font-size: 12.5px; }
+.passport-page.wishlist { background: #121a2e; border-style: dashed; }
 
 /* Park / wonder stamps: the photo is the stamp art. */
 .park-grid {

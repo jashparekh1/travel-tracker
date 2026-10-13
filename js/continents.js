@@ -62,11 +62,15 @@ window.US_STATE_CODES = {
   "Wyoming": "us-wy", "District of Columbia": "", "Puerto Rico": "pr",
 };
 
+// Note dates are "YYYY-MM" months. Old entries used {when} instead of {from}.
+window.MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+window.fmtMonth = (m) => (m ? `${window.MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}` : "");
+window.noteFrom = (e) => e.from || e.when || null;
+
 // Compact month+year picker (short month names — native month inputs
 // show full names and overflow). Returns {value(), clear()} where value
 // is "YYYY-MM" or null.
 window.myPicker = (el) => {
-  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const mSel = document.createElement("select");
   mSel.innerHTML = `<option value="">Month</option>` +
     MONTHS.map((m, i) => `<option value="${String(i + 1).padStart(2, "0")}">${m}</option>`).join("");

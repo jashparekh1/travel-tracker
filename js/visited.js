@@ -1,5 +1,6 @@
 // Visited page: tabs for Countries (by continent), States (US + India),
-// National Parks and Wonders.
+// National Parks and Wonders, plus a Passport view of collected stamps
+// grouped by the year of each place's first dated visit.
 // Everything is clickable and shares the same Store as the globe.
 
 (function () {
@@ -47,10 +48,10 @@
     return (words.length > 1 ? words[0][0] + words[1][0] : name.slice(0, 2)).toUpperCase();
   };
 
-  function stamp(type, name, label) {
+  function stamp(type, name, label, art) {
     const el = document.createElement("button");
     el.className = "stamp";
-    const art = flagImg(type, name, "stamp-flag") || `<span class="stamp-mono">${monogram(name)}</span>`;
+    art = art || flagImg(type, name, "stamp-flag") || `<span class="stamp-mono">${monogram(name)}</span>`;
     el.innerHTML =
       `<span class="stamp-frame"><span class="stamp-art">${art}</span>` +
       `<span class="stamp-name">${label || name}</span></span>` +
@@ -62,11 +63,21 @@
     return el;
   }
 
+  // Dated visits for a place from its timeline notes, oldest first.
+  const visitDates = (type, name) =>
+    Store.notesFor(`${type}/${name}`).map(noteFrom).filter(Boolean).sort();
+
+  // Postmarks carry the first visit's month ("VISITED / MAR 2024"); the
+  // hover title lists every dated visit.
   function setStampStatus(el, s) {
     el.classList.toggle("visited", s === "visited");
     el.classList.toggle("lived", s === "lived");
     el.classList.toggle("want", s === "want");
-    el.querySelector(".postmark").textContent = POSTMARK[s] || "";
+    const dates = s && s !== "want" ? visitDates(el.dataset.type, el.dataset.name) : [];
+    el.querySelector(".postmark").innerHTML = s
+      ? `<b>${POSTMARK[s]}</b>` + (dates.length ? `<i>${fmtMonth(dates[0])}</i>` : "")
+      : "";
+    el.title = dates.length > 1 ? `${dates.length} visits: ${dates.map(fmtMonth).join(", ")}` : "";
   }
 
   function refreshStamps() {
@@ -184,6 +195,112 @@
     });
   }
 
+  // ---- passport view ----
+  // Collected (visited / lived) stamps across every category, one page per
+  // year of first visit, newest first; undated stamps and the wishlist get
+  // their own pages at the back.
+  const passportRoot = document.getElementById("passport");
+  const PLACES = [].concat(
+    Object.keys(window.COUNTRY_META).map((n) => ({ type: "countries", name: n, label: displayName(n) })),
+    window.ALL_STATES.map((n) => ({ type: "states", name: n, label: n })),
+    window.PARKS.map((p) => ({ type: "parks", name: p.name, label: p.name, item: p })),
+    window.LANDMARKS.map((l) => ({ type: "landmarks", name: l.name, label: l.name, item: l })),
+  );
+  const TYPE_WORD = {
+    countries: ["country", "countries"], states: ["state", "states"],
+    parks: ["park", "parks"], landmarks: ["wonder", "wonders"],
+  };
+
+  function passportStamp(p) {
+    // Parks and wonders use their photo as the stamp art.
+    const art = p.item && `<span class="stamp-photo">${p.type === "parks" ? "🏞️" : "⭐"}</span>`;
+    const el = stamp(p.type, p.name, p.label, art);
+    el.onclick = null;
+    el.classList.add("in-passport");
+    setStampStatus(el, p.s);
+    if (p.item) loadThumb(p.item, el.querySelector(".stamp-photo"));
+    return el;
+  }
+
+  function passportPage(title, sub, places, extraClass) {
+    const page = document.createElement("section");
+    page.className = "passport-page" + (extraClass ? " " + extraClass : "");
+    page.innerHTML = `<header><h2>${title}</h2><span>${sub}</span></header>`;
+    const grid = document.createElement("div");
+    grid.className = "stamp-grid";
+    places.forEach((p) => grid.appendChild(passportStamp(p)));
+    page.appendChild(grid);
+    return page;
+  }
+
+  function renderPassport() {
+    const got = [];
+    const wish = [];
+    for (const p of PLACES) {
+      const s = Store.get(p.type, p.name);
+      if (s === "want") wish.push({ ...p, s });
+      else if (s) got.push({ ...p, s, first: visitDates(p.type, p.name)[0] || null });
+    }
+    passportRoot.innerHTML = "";
+
+    const byType = {};
+    got.forEach((p) => { byType[p.type] = (byType[p.type] || 0) + 1; });
+    const years = got.filter((p) => p.first).map((p) => p.first.slice(0, 4)).sort();
+    const cover = document.createElement("div");
+    cover.className = "passport-cover";
+    cover.innerHTML =
+      `<div class="crest">🌍</div><div><div class="cover-title">Passport</div>` +
+      `<div class="cover-sub">${got.length} stamp${got.length === 1 ? "" : "s"}` +
+      Object.keys(TYPE_WORD).filter((t) => byType[t])
+        .map((t) => ` · ${byType[t]} ${TYPE_WORD[t][byType[t] === 1 ? 0 : 1]}`).join("") +
+      (years.length ? ` · since ${years[0]}` : "") + `</div></div>`;
+    passportRoot.appendChild(cover);
+
+    if (!got.length) {
+      const empty = document.createElement("p");
+      empty.className = "passport-empty";
+      empty.textContent = "No stamps yet. Mark places as visited in All places or on the globe, " +
+        "and add dated notes on the Timeline to put a date on each postmark.";
+      passportRoot.appendChild(empty);
+    }
+
+    const byYear = {};
+    const undated = [];
+    for (const p of got) {
+      if (p.first) (byYear[p.first.slice(0, 4)] = byYear[p.first.slice(0, 4)] || []).push(p);
+      else undated.push(p);
+    }
+    const count = (n) => `${n} stamp${n === 1 ? "" : "s"}`;
+    for (const y of Object.keys(byYear).sort().reverse()) {
+      const places = byYear[y].sort((a, b) => a.first.localeCompare(b.first) || a.label.localeCompare(b.label));
+      passportRoot.appendChild(passportPage(y, count(places.length), places));
+    }
+    if (undated.length) {
+      undated.sort((a, b) => a.label.localeCompare(b.label));
+      passportRoot.appendChild(passportPage("Undated", count(undated.length) +
+        " · add a dated note on the Timeline to file these under a year", undated));
+    }
+    if (wish.length) {
+      wish.sort((a, b) => a.label.localeCompare(b.label));
+      passportRoot.appendChild(passportPage("Wishlist", `${wish.length} to go`, wish, "wishlist"));
+    }
+  }
+
+  // All places <-> Passport switch; remembered per browser, and
+  // visited.html#passport opens straight into it.
+  const VIEW_KEY = "travel-tracker-visited-view";
+  const viewButtons = document.querySelectorAll("#view-switch button");
+  function setView(view) {
+    viewButtons.forEach((b) => b.classList.toggle("active", b.dataset.view === view));
+    document.getElementById("places-view").hidden = view !== "places";
+    document.getElementById("passport-view").hidden = view !== "passport";
+    try { localStorage.setItem(VIEW_KEY, view); } catch (e) { /* private mode */ }
+  }
+  viewButtons.forEach((b) => { b.onclick = () => setView(b.dataset.view); });
+  let savedView = null;
+  try { savedView = localStorage.getItem(VIEW_KEY); } catch (e) { /* private mode */ }
+  setView(location.hash === "#passport" ? "passport" : savedView === "passport" ? "passport" : "places");
+
   // ---- stats ----
   function refreshStats() {
     const c = Store.counts();
@@ -210,7 +327,7 @@
 
   document.getElementById("btn-export").onclick = () => Store.exportFile();
 
-  function refreshAll() { refreshStamps(); refreshParks(); refreshStats(); }
+  function refreshAll() { refreshStamps(); refreshParks(); refreshStats(); renderPassport(); }
   Store.onChange(refreshAll);
   refreshAll();
 })();

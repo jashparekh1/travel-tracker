@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Travels · Visited</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=22">
+  <link rel="stylesheet" href="css/style.css?v=23">
 </head>
 <body class="page">
   <div class="topbar">
@@ -18,54 +18,65 @@
   </div>
 
   <main>
-    <div class="tabs">
-      <button data-tab="countries" class="active">Countries</button>
-      <button data-tab="states">States</button>
-      <button data-tab="parks">National Parks</button>
-      <button data-tab="landmarks">Wonders</button>
+    <div class="seg view-switch" id="view-switch">
+      <button data-view="places" class="active">All places</button>
+      <button data-view="passport">🛂 Passport</button>
     </div>
 
-    <div class="tab-pane active" id="pane-countries">
-      <div class="pane-stats" id="stats-countries"></div>
-      <div id="continent-lists"></div>
+    <div id="passport-view" hidden>
+      <div id="passport"></div>
     </div>
 
-    <div class="tab-pane" id="pane-states">
-      <div class="pane-stats" id="stats-states"></div>
-      <h2 class="continent">🇺🇸 United States</h2>
-      <div class="stamp-grid" id="state-list"></div>
-      <h3 class="territories">Also on the map</h3>
-      <div class="stamp-grid terr" id="extras-list"></div>
-      <h2 class="continent">🇮🇳 India</h2>
-      <div class="stamp-grid" id="india-state-list"></div>
-      <h3 class="territories">Union territories</h3>
-      <div class="stamp-grid terr" id="india-ut-list"></div>
-    </div>
+    <div id="places-view">
+      <div class="tabs">
+        <button data-tab="countries" class="active">Countries</button>
+        <button data-tab="states">States</button>
+        <button data-tab="parks">National Parks</button>
+        <button data-tab="landmarks">Wonders</button>
+      </div>
 
-    <div class="tab-pane" id="pane-parks">
-      <div class="pane-stats" id="stats-parks"></div>
-      <div class="park-grid" id="park-list"></div>
-    </div>
+      <div class="tab-pane active" id="pane-countries">
+        <div class="pane-stats" id="stats-countries"></div>
+        <div id="continent-lists"></div>
+      </div>
 
-    <div class="tab-pane" id="pane-landmarks">
-      <div class="pane-stats" id="stats-landmarks"></div>
-      <div class="park-grid" id="landmark-list"></div>
-    </div>
+      <div class="tab-pane" id="pane-states">
+        <div class="pane-stats" id="stats-states"></div>
+        <h2 class="continent">🇺🇸 United States</h2>
+        <div class="stamp-grid" id="state-list"></div>
+        <h3 class="territories">Also on the map</h3>
+        <div class="stamp-grid terr" id="extras-list"></div>
+        <h2 class="continent">🇮🇳 India</h2>
+        <div class="stamp-grid" id="india-state-list"></div>
+        <h3 class="territories">Union territories</h3>
+        <div class="stamp-grid terr" id="india-ut-list"></div>
+      </div>
 
-    <p class="footer-note">
-      Click anything to toggle its status. Changes live in this browser until you
-      press <b>Export</b> and commit the downloaded file as <code>data/my-travels.js</code>.
-    </p>
+      <div class="tab-pane" id="pane-parks">
+        <div class="pane-stats" id="stats-parks"></div>
+        <div class="park-grid" id="park-list"></div>
+      </div>
+
+      <div class="tab-pane" id="pane-landmarks">
+        <div class="pane-stats" id="stats-landmarks"></div>
+        <div class="park-grid" id="landmark-list"></div>
+      </div>
+
+      <p class="footer-note">
+        Click anything to toggle its status. Changes live in this browser until you
+        press <b>Export</b> and commit the downloaded file as <code>data/my-travels.js</code>.
+      </p>
+    </div>
   </main>
 
   <script src="vendor/supabase.min.js"></script>
   <script src="js/supabase-config.js?v=2"></script>
   <script src="data/my-travels.js?v=2"></script>
   <script src="js/countries-meta.js?v=2"></script>
-  <script src="js/continents.js?v=5"></script>
+  <script src="js/continents.js?v=6"></script>
   <script src="js/parks.js?v=2"></script>
   <script src="js/landmarks.js?v=1"></script>
   <script src="js/store.js?v=8"></script>
-  <script src="js/visited.js?v=10"></script>
+  <script src="js/visited.js?v=12"></script>
 </body>
 </html>

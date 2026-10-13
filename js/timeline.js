@@ -29,9 +29,7 @@
     return `${type === "landmarks" ? "⭐" : "🏞️"} ${name}`;
   }
 
-  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const fmtMonth = (m) => (m ? `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}` : "");
-  const entryFrom = (e) => e.from || e.when || null; // old entries used {when}
+  const entryFrom = window.noteFrom;
   const fmtWhen = (e) => {
     const from = entryFrom(e);
     if (!from) return "";
