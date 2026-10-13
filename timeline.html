@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Travels · Timeline</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=23">
+  <link rel="stylesheet" href="css/style.css?v=25">
 </head>
 <body class="page">
   <div class="topbar">
@@ -21,11 +21,12 @@
     <div class="pane-stats" id="stats-timeline"></div>
     <div class="note-form">
       <div class="note-row">
-        <input id="note-place" list="note-places" placeholder="Where? (country, state, park, or wonder)">
+        <input id="note-place" list="note-places" placeholder="Where? Add one or more places (country, state, park, or wonder)">
         <datalist id="note-places"></datalist>
         <div class="my-picker" id="note-when" title="From (optional)"></div>
         <div class="my-picker" id="note-when-to" title="To (optional)"></div>
       </div>
+      <div class="note-picked" id="note-picked"></div>
       <textarea id="note-text" rows="2" placeholder="What did you see / do?"></textarea>
       <div class="acct-error" id="note-error"></div>
       <div class="acct-actions">
@@ -42,8 +43,8 @@
   <script src="js/countries-meta.js?v=2"></script>
   <script src="js/continents.js?v=6"></script>
   <script src="js/parks.js?v=2"></script>
-  <script src="js/landmarks.js?v=1"></script>
-  <script src="js/store.js?v=8"></script>
-  <script src="js/timeline.js?v=8"></script>
+  <script src="js/landmarks.js?v=2"></script>
+  <script src="js/store.js?v=9"></script>
+  <script src="js/timeline.js?v=10"></script>
 </body>
 </html>

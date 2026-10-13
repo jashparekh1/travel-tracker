@@ -41,25 +41,64 @@
   const keyToLabel = {};
   for (const [label, key] of Object.entries(placeKeys)) keyToLabel[key] = label;
 
-  let editing = null; // {key, i} while editing an existing entry
+  // Places picked for the entry being written. One place makes a plain
+  // note; several make a trip (one memory linked across all of them).
+  let picked = [];
+  const placeInput = document.getElementById("note-place");
+  const pickedRoot = document.getElementById("note-picked");
+
+  function renderPicked() {
+    pickedRoot.innerHTML = "";
+    for (const key of picked) {
+      const chip = document.createElement("span");
+      chip.className = "picked-place";
+      chip.innerHTML = `${keyLabel(key)}<button title="Remove">✕</button>`;
+      chip.querySelector("button").onclick = () => {
+        picked = picked.filter((k) => k !== key);
+        renderPicked();
+      };
+      pickedRoot.appendChild(chip);
+    }
+    placeInput.placeholder = picked.length
+      ? "Add another place to this trip…"
+      : "Where? Add one or more places (country, state, park, or wonder)";
+  }
+
+  // Picking a suggestion (or pressing Enter on an exact match) adds it.
+  function takeInput() {
+    const key = placeKeys[placeInput.value.trim()];
+    if (!key) return false;
+    if (!picked.includes(key)) picked.push(key);
+    placeInput.value = "";
+    renderPicked();
+    return true;
+  }
+  placeInput.addEventListener("input", takeInput);
+  placeInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); takeInput(); }
+  });
+
+  let editing = null; // {key, i} or {trip} while editing an existing entry
 
   function exitEditMode() {
     editing = null;
     document.getElementById("note-add").textContent = "Add to timeline";
     document.getElementById("note-cancel").style.display = "none";
-    document.getElementById("note-place").value = "";
+    placeInput.value = "";
+    picked = [];
+    renderPicked();
     pickFrom.clear();
     pickTo.clear();
     document.getElementById("note-text").value = "";
     document.getElementById("note-error").textContent = "";
   }
 
-  function startEdit(key, i) {
-    const entry = Store.notesFor(key)[i];
-    if (!entry) return;
-    editing = { key, i };
-    document.getElementById("note-place").value = keyToLabel[key] || "";
-    pickFrom.set(entry.from || entry.when || null);
+  function startEdit(target, keys, entry) {
+    editing = target;
+    picked = keys.slice();
+    renderPicked();
+    placeInput.value = "";
+    pickFrom.set(entryFrom(entry));
     pickTo.set(entry.to || null);
     document.getElementById("note-text").value = entry.text || "";
     document.getElementById("note-add").textContent = "Save changes";
@@ -72,27 +111,28 @@
   document.getElementById("note-add").onclick = () => {
     const err = (m) => { document.getElementById("note-error").textContent = m || ""; };
     err("");
-    const place = document.getElementById("note-place").value.trim();
-    const key = placeKeys[place];
-    if (!key) { err("Pick a place from the list (start typing to search)."); return; }
+    if (placeInput.value.trim() && !takeInput()) {
+      err("Pick a place from the list (start typing to search).");
+      return;
+    }
+    if (!picked.length) { err("Add at least one place (start typing to search)."); return; }
     const from = pickFrom.value();
     const to = pickTo.value();
     const text = document.getElementById("note-text").value.trim();
     if (!from && !text) { err("Add a date, a note, or both."); return; }
-    if (editing) {
-      if (key === editing.key) {
-        const range = to && to !== from ? to : null;
-        Store.updateNote(key, editing.i, { from: from || null, to: range, text });
-      } else {
-        // Moved to a different place: remove old, add under the new key.
-        Store.deleteNote(editing.key, editing.i);
-        Store.addNote(key, from, to, text);
-      }
-      exitEditMode();
+    const keys = picked.slice();
+    if (editing && editing.trip) {
+      Store.updateTrip(editing.trip, keys, from, to, text);
+    } else if (editing && keys.length === 1 && keys[0] === editing.key) {
+      const range = to && to !== from ? to : null;
+      Store.updateNote(editing.key, editing.i, { from: from || null, to: range, text });
     } else {
-      Store.addNote(key, from, to, text);
-      document.getElementById("note-text").value = "";
+      // New entry, or a single note that changed place / grew into a trip.
+      if (editing) Store.deleteNote(editing.key, editing.i);
+      if (keys.length === 1) Store.addNote(keys[0], from, to, text);
+      else Store.addTrip(keys, from, to, text);
     }
+    exitEditMode();
   };
 
   // A range label clipped to one year: "Dec 2025" or "Mar – Aug 2025".
@@ -105,31 +145,46 @@
     const root = document.getElementById("timeline");
     root.innerHTML = "";
 
-    // Split ranges so each year shows its own slice of the trip.
-    const segments = [];
-    let total = 0;
+    // One item per memory: a plain note, or a trip gathered from the
+    // linked copies on each of its places.
+    const items = [];
+    const trips = {};
     for (const [key, entries] of Object.entries(Store.allNotes())) {
       entries.forEach((e, i) => {
-        total++;
-        const from = entryFrom(e);
-        if (!from) {
-          segments.push({ key, i, year: "Undated", label: "", text: e.text, sort: "9999" });
-          return;
-        }
-        const to = e.to && e.to > from ? e.to : from;
-        const yFrom = +from.slice(0, 4);
-        const yTo = +to.slice(0, 4);
-        for (let y = yFrom; y <= yTo; y++) {
-          const segFrom = y === yFrom ? from : `${y}-01`;
-          const segTo = y === yTo ? to : `${y}-12`;
-          segments.push({
-            key, i, year: String(y),
-            label: fmtSeg(segFrom, segTo),
-            text: e.text, sort: segFrom,
-            contBefore: y > yFrom, contAfter: y < yTo,
-          });
-        }
+        if (!e.trip) { items.push({ keys: [key], key, i, e }); return; }
+        if (!trips[e.trip]) items.push((trips[e.trip] = { keys: [], trip: e.trip, e }));
+        trips[e.trip].keys.push(key);
       });
+    }
+    // Trip places read broad to specific: countries, states, parks, wonders.
+    const TYPE_RANK = { countries: 0, states: 1, parks: 2, landmarks: 3 };
+    for (const t of Object.values(trips)) {
+      t.keys.sort((a, b) => TYPE_RANK[a.split("/")[0]] - TYPE_RANK[b.split("/")[0]] || a.localeCompare(b));
+    }
+
+    // Split ranges so each year shows its own slice of the trip.
+    const segments = [];
+    const total = items.length;
+    for (const item of items) {
+      const e = item.e;
+      const from = entryFrom(e);
+      if (!from) {
+        segments.push({ ...item, year: "Undated", label: "", text: e.text, sort: "9999" });
+        continue;
+      }
+      const to = e.to && e.to > from ? e.to : from;
+      const yFrom = +from.slice(0, 4);
+      const yTo = +to.slice(0, 4);
+      for (let y = yFrom; y <= yTo; y++) {
+        const segFrom = y === yFrom ? from : `${y}-01`;
+        const segTo = y === yTo ? to : `${y}-12`;
+        segments.push({
+          ...item, year: String(y),
+          label: fmtSeg(segFrom, segTo),
+          text: e.text, sort: segFrom,
+          contBefore: y > yFrom, contAfter: y < yTo,
+        });
+      }
     }
 
     document.getElementById("stats-timeline").innerHTML = total
@@ -171,12 +226,14 @@
           `<button class="btn small tl-del" title="Delete this memory">✕</button>` +
           `</div>` +
           `<div class="tl-head">` +
-          `<span class="tl-place">${keyLabel(s.key)}</span>${cont}</div>` +
+          `<span class="tl-place">${s.keys.map(keyLabel).join(`<span class="tl-sep">·</span>`)}</span>${cont}</div>` +
           (s.text ? `<div class="tl-text">${s.text.replace(/</g, "&lt;")}</div>` : "");
-        row.querySelector(".tl-edit").onclick = () => startEdit(s.key, s.i);
+        row.querySelector(".tl-edit").onclick = () =>
+          startEdit(s.trip ? { trip: s.trip } : { key: s.key, i: s.i }, s.keys, s.e);
         row.querySelector(".tl-del").onclick = () => {
-          if (editing && editing.key === s.key && editing.i === s.i) exitEditMode();
-          Store.deleteNote(s.key, s.i);
+          if (editing && (s.trip ? editing.trip === s.trip : editing.key === s.key && editing.i === s.i)) exitEditMode();
+          if (s.trip) Store.deleteTrip(s.trip);
+          else Store.deleteNote(s.key, s.i);
         };
         group.appendChild(row);
       }
@@ -198,6 +255,7 @@
   document.getElementById("btn-export").onclick = () => Store.exportFile();
 
   function refreshAll() { renderTimeline(); refreshStats(); }
+  renderPicked();
   Store.onChange(refreshAll);
   refreshAll();
 })();

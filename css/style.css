@@ -200,7 +200,7 @@ body.page .topbar { position: sticky; }
 /* Pin groups: count bubble for pins too close together to tell apart */
 .pin-group { cursor: pointer; }
 .pin-group circle { fill: #7c8db0; stroke: #0b1020; stroke-width: 1.5; }
-.pin-group.has-marked circle { fill: #ef4444; }
+.pin-group.has-visited circle { fill: #ef4444; }
 .pin-group:hover circle { stroke: #fff; }
 .pin-group-count {
   font-size: 11px;
@@ -208,7 +208,7 @@ body.page .topbar { position: sticky; }
   fill: #0b1020;
   pointer-events: none;
 }
-.pin-group.has-marked .pin-group-count { fill: #fff; }
+.pin-group.has-visited .pin-group-count { fill: #fff; }
 
 .flag {
   width: 20px;
@@ -631,6 +631,28 @@ h2.continent {
 .passport-page h2 { font: 700 26px/1 Georgia, "Times New Roman", serif; color: var(--text); }
 .passport-page header span { color: var(--muted); font-size: 12.5px; }
 .passport-page.wishlist { background: #121a2e; border-style: dashed; }
+.passport-row {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 12px 0;
+  border-top: 1px dashed #232c49;
+}
+.passport-page header + .passport-row { border-top: none; padding-top: 0; }
+.passport-row-label {
+  padding-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7894;
+}
+.passport-row .stamp-grid { min-height: 36px; }
+@media (max-width: 640px) {
+  .passport-row { grid-template-columns: 1fr; gap: 8px; }
+  .passport-row-label { padding-top: 0; }
+}
 
 /* Park / wonder stamps: the photo is the stamp art. */
 .park-grid {
@@ -666,6 +688,30 @@ h2.continent {
 .footer-note { margin-top: 34px; color: var(--muted); font-size: 12.5px; }
 
 /* ---------- timeline ---------- */
+/* Places picked for a timeline entry; several make a trip. */
+.note-picked { display: flex; flex-wrap: wrap; gap: 6px; }
+.note-picked:empty { display: none; }
+.picked-place {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 10px;
+  border: 1px solid #2b3760;
+  border-radius: 999px;
+  background: var(--panel-2);
+  font-size: 12.5px;
+}
+.picked-place .flag { width: 16px; }
+.picked-place button {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 5px;
+}
+.picked-place button:hover { color: var(--text); }
+.tl-sep { margin: 0 7px; color: var(--muted); }
 .note-form {
   background: var(--panel);
   border: 1px solid #232c49;

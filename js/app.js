@@ -326,7 +326,11 @@
       // Name the group when every pin shares a state / place ("Utah · 5").
       const regions = new Set(g.members.map((m) => m.d.state || m.d.place));
       g.region = regions.size === 1 ? [...regions][0] : "";
-      g.marked = g.members.filter((m) => mine(m) === 0).length;
+      // Red only when you've been to one of them; wishlist pins don't count.
+      g.visited = g.members.some((m) => {
+        const s = Store.get(m.type, m.d.name);
+        return s === "visited" || s === "lived";
+      });
       multi.push(g);
     }
 
@@ -345,7 +349,7 @@
       return e;
     });
     groupNodes
-      .classed("has-marked", (g) => g.marked > 0)
+      .classed("has-visited", (g) => g.visited)
       .attr("transform", (g) => `translate(${g.x},${g.y})`);
     groupNodes.select("circle").attr("r", (g) => g.r);
     groupNodes.select(".pin-group-count").text((g) => g.members.length);

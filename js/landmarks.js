@@ -1,5 +1,5 @@
-// 50 world wonders & landmarks. `wiki` is the Wikipedia title used for
-// photos. Swap/veto freely — this list is curated, not canonical.
+// World wonders & landmarks: only the true bucket-list icons. `wiki` is the
+// Wikipedia title used for photos. Curated, not canonical.
 
 window.LANDMARKS = [
   // New 7 Wonders + Giza
@@ -14,47 +14,25 @@ window.LANDMARKS = [
   // Europe
   { name: "Eiffel Tower", place: "France", lat: 48.86, lon: 2.29, wiki: "Eiffel Tower" },
   { name: "Louvre", place: "France", lat: 48.86, lon: 2.34, wiki: "Louvre" },
-  { name: "Mont-Saint-Michel", place: "France", lat: 48.64, lon: -1.51, wiki: "Mont-Saint-Michel" },
   { name: "Big Ben", place: "United Kingdom", lat: 51.5, lon: -0.12, wiki: "Big Ben" },
   { name: "Stonehenge", place: "United Kingdom", lat: 51.18, lon: -1.83, wiki: "Stonehenge" },
   { name: "Sagrada Família", place: "Spain", lat: 41.4, lon: 2.17, wiki: "Sagrada Família" },
-  { name: "Alhambra", place: "Spain", lat: 37.18, lon: -3.59, wiki: "Alhambra" },
   { name: "Acropolis of Athens", place: "Greece", lat: 37.97, lon: 23.73, wiki: "Acropolis of Athens" },
-  { name: "Santorini", place: "Greece", lat: 36.46, lon: 25.38, wiki: "Santorini" },
   { name: "Leaning Tower of Pisa", place: "Italy", lat: 43.72, lon: 10.4, wiki: "Leaning Tower of Pisa" },
   { name: "St. Peter's Basilica", place: "Vatican City", lat: 41.9, lon: 12.45, wiki: "St. Peter's Basilica" },
-  { name: "Neuschwanstein Castle", place: "Germany", lat: 47.56, lon: 10.75, wiki: "Neuschwanstein Castle" },
-  { name: "Brandenburg Gate", place: "Germany", lat: 52.52, lon: 13.38, wiki: "Brandenburg Gate" },
-  { name: "Charles Bridge", place: "Czechia", lat: 50.09, lon: 14.41, wiki: "Charles Bridge" },
-  { name: "Saint Basil's Cathedral", place: "Russia", lat: 55.75, lon: 37.62, wiki: "Saint Basil's Cathedral" },
   { name: "Hagia Sophia", place: "Turkey", lat: 41.01, lon: 28.98, wiki: "Hagia Sophia" },
   // Middle East & Africa
   { name: "Burj Khalifa", place: "United Arab Emirates", lat: 25.2, lon: 55.27, wiki: "Burj Khalifa" },
-  { name: "Western Wall", place: "Jerusalem", lat: 31.78, lon: 35.23, wiki: "Western Wall" },
-  { name: "Abu Simbel", place: "Egypt", lat: 22.34, lon: 31.63, wiki: "Abu Simbel" },
   { name: "Victoria Falls", place: "Zambia / Zimbabwe", lat: -17.93, lon: 25.86, wiki: "Victoria Falls" },
-  { name: "Table Mountain", place: "South Africa", lat: -33.96, lon: 18.41, wiki: "Table Mountain" },
-  { name: "Mount Kilimanjaro", place: "Tanzania", lat: -3.07, lon: 37.36, wiki: "Mount Kilimanjaro" },
   // Asia
   { name: "Angkor Wat", place: "Cambodia", lat: 13.41, lon: 103.87, wiki: "Angkor Wat" },
-  { name: "Borobudur", place: "Indonesia", lat: -7.61, lon: 110.2, wiki: "Borobudur" },
   { name: "Mount Fuji", place: "Japan", lat: 35.36, lon: 138.73, wiki: "Mount Fuji" },
-  { name: "Fushimi Inari-taisha", place: "Japan", lat: 34.97, lon: 135.77, wiki: "Fushimi Inari-taisha" },
   { name: "Forbidden City", place: "China", lat: 39.92, lon: 116.4, wiki: "Forbidden City" },
-  { name: "Potala Palace", place: "Tibet, China", lat: 29.66, lon: 91.12, wiki: "Potala Palace" },
-  { name: "Golden Temple", place: "India", lat: 31.62, lon: 74.88, wiki: "Golden Temple" },
-  { name: "Petronas Towers", place: "Malaysia", lat: 3.16, lon: 101.71, wiki: "Petronas Towers" },
-  { name: "Bagan", place: "Myanmar", lat: 21.17, lon: 94.86, wiki: "Bagan" },
-  { name: "Ha Long Bay", place: "Vietnam", lat: 20.91, lon: 107.18, wiki: "Ha Long Bay" },
   // Americas
   { name: "Statue of Liberty", place: "United States", lat: 40.69, lon: -74.04, wiki: "Statue of Liberty" },
   { name: "Golden Gate Bridge", place: "United States", lat: 37.82, lon: -122.48, wiki: "Golden Gate Bridge" },
-  { name: "Mount Rushmore", place: "United States", lat: 43.88, lon: -103.46, wiki: "Mount Rushmore" },
   { name: "Niagara Falls", place: "United States / Canada", lat: 43.08, lon: -79.07, wiki: "Niagara Falls" },
   { name: "Iguazu Falls", place: "Argentina / Brazil", lat: -25.7, lon: -54.44, wiki: "Iguazu Falls" },
-  { name: "Teotihuacan", place: "Mexico", lat: 19.69, lon: -98.84, wiki: "Teotihuacan" },
-  { name: "Easter Island", place: "Chile", lat: -27.11, lon: -109.35, wiki: "Easter Island" },
-  { name: "Salar de Uyuni", place: "Bolivia", lat: -20.13, lon: -67.49, wiki: "Salar de Uyuni" },
   // Oceania
   { name: "Sydney Opera House", place: "Australia", lat: -33.86, lon: 151.22, wiki: "Sydney Opera House" },
   { name: "Uluru", place: "Australia", lat: -25.35, lon: 131.04, wiki: "Uluru" },

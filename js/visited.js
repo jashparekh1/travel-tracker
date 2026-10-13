@@ -1,6 +1,6 @@
 // Visited page: tabs for Countries (by continent), States (US + India),
 // National Parks and Wonders, plus a Passport view of collected stamps
-// grouped by the year of each place's first dated visit.
+// filed under every year you visited.
 // Everything is clickable and shares the same Store as the globe.
 
 (function () {
@@ -63,19 +63,29 @@
     return el;
   }
 
-  // Dated visits for a place from its timeline notes, oldest first.
-  const visitDates = (type, name) =>
-    Store.notesFor(`${type}/${name}`).map(noteFrom).filter(Boolean).sort();
+  // Dated visits for a place from its timeline notes, oldest first and
+  // de-duplicated. A subdivided country (US, India) also counts the notes
+  // on its states, so a Kerala trip dates the India stamp.
+  const visitDates = (type, name) => {
+    const keys = [`${type}/${name}`];
+    if (type === "countries" && window.SUBDIVIDED[name]) {
+      for (const sub of window.SUBDIVIDED[name]) keys.push(`states/${sub}`);
+    }
+    const dates = keys.flatMap((k) => Store.notesFor(k).map(noteFrom)).filter(Boolean);
+    return [...new Set(dates)].sort();
+  };
 
-  // Postmarks carry the first visit's month ("VISITED / MAR 2024"); the
+  // Postmarks carry a visit's month ("VISITED / MAR 2024"): the first visit
+  // unless `date` picks one (passport pages show that year's visit). The
   // hover title lists every dated visit.
-  function setStampStatus(el, s) {
+  function setStampStatus(el, s, date) {
     el.classList.toggle("visited", s === "visited");
     el.classList.toggle("lived", s === "lived");
     el.classList.toggle("want", s === "want");
     const dates = s && s !== "want" ? visitDates(el.dataset.type, el.dataset.name) : [];
+    const shown = date || dates[0];
     el.querySelector(".postmark").innerHTML = s
-      ? `<b>${POSTMARK[s]}</b>` + (dates.length ? `<i>${fmtMonth(dates[0])}</i>` : "")
+      ? `<b>${POSTMARK[s]}</b>` + (shown ? `<i>${fmtMonth(shown)}</i>` : "")
       : "";
     el.title = dates.length > 1 ? `${dates.length} visits: ${dates.map(fmtMonth).join(", ")}` : "";
   }
@@ -196,13 +206,17 @@
   }
 
   // ---- passport view ----
-  // Collected (visited / lived) stamps across every category, one page per
-  // year of first visit, newest first; undated stamps and the wishlist get
-  // their own pages at the back.
+  // Collected (visited / lived) stamps across every category. Visited
+  // places get one page per year, newest first; a place visited in several
+  // years gets a stamp on each of those pages but counts once on the cover.
+  // Places you've lived sit on one Lived page after the years, then undated
+  // stamps, then the wishlist.
+  // Indian states stay out of the book; the India stamp stands for them.
   const passportRoot = document.getElementById("passport");
+  const indiaSubs = new Set(window.SUBDIVIDED["India"]);
   const PLACES = [].concat(
     Object.keys(window.COUNTRY_META).map((n) => ({ type: "countries", name: n, label: displayName(n) })),
-    window.ALL_STATES.map((n) => ({ type: "states", name: n, label: n })),
+    window.ALL_STATES.filter((n) => !indiaSubs.has(n)).map((n) => ({ type: "states", name: n, label: n })),
     window.PARKS.map((p) => ({ type: "parks", name: p.name, label: p.name, item: p })),
     window.LANDMARKS.map((l) => ({ type: "landmarks", name: l.name, label: l.name, item: l })),
   );
@@ -217,19 +231,33 @@
     const el = stamp(p.type, p.name, p.label, art);
     el.onclick = null;
     el.classList.add("in-passport");
-    setStampStatus(el, p.s);
+    setStampStatus(el, p.s, p.date);
     if (p.item) loadThumb(p.item, el.querySelector(".stamp-photo"));
     return el;
   }
 
-  function passportPage(title, sub, places, extraClass) {
+  // Pages have one row per category, so each kind of stamp gets its own
+  // strip; an empty row just stays blank. The Lived page only has
+  // countries and states, since you can't live in a park or a wonder.
+  const PAGE_ROWS = [
+    ["countries", "Countries"], ["states", "States"],
+    ["parks", "National Parks"], ["landmarks", "Wonders"],
+  ];
+
+  function passportPage(title, sub, places, extraClass, rows = PAGE_ROWS) {
     const page = document.createElement("section");
     page.className = "passport-page" + (extraClass ? " " + extraClass : "");
     page.innerHTML = `<header><h2>${title}</h2><span>${sub}</span></header>`;
-    const grid = document.createElement("div");
-    grid.className = "stamp-grid";
-    places.forEach((p) => grid.appendChild(passportStamp(p)));
-    page.appendChild(grid);
+    for (const [type, label] of rows) {
+      const row = document.createElement("div");
+      row.className = "passport-row";
+      row.innerHTML = `<div class="passport-row-label">${label}</div>`;
+      const grid = document.createElement("div");
+      grid.className = "stamp-grid";
+      places.filter((p) => p.type === type).forEach((p) => grid.appendChild(passportStamp(p)));
+      row.appendChild(grid);
+      page.appendChild(row);
+    }
     return page;
   }
 
@@ -239,13 +267,13 @@
     for (const p of PLACES) {
       const s = Store.get(p.type, p.name);
       if (s === "want") wish.push({ ...p, s });
-      else if (s) got.push({ ...p, s, first: visitDates(p.type, p.name)[0] || null });
+      else if (s) got.push({ ...p, s, dates: visitDates(p.type, p.name) });
     }
     passportRoot.innerHTML = "";
 
     const byType = {};
     got.forEach((p) => { byType[p.type] = (byType[p.type] || 0) + 1; });
-    const years = got.filter((p) => p.first).map((p) => p.first.slice(0, 4)).sort();
+    const years = got.flatMap((p) => p.dates.map((d) => d.slice(0, 4))).sort();
     const cover = document.createElement("div");
     cover.className = "passport-cover";
     cover.innerHTML =
@@ -265,15 +293,25 @@
     }
 
     const byYear = {};
+    const homes = [];
     const undated = [];
     for (const p of got) {
-      if (p.first) (byYear[p.first.slice(0, 4)] = byYear[p.first.slice(0, 4)] || []).push(p);
-      else undated.push(p);
+      if (p.s === "lived") { homes.push(p); continue; }
+      if (!p.dates.length) { undated.push(p); continue; }
+      // One stamp per year, postmarked with that year's first visit.
+      const firstByYear = {};
+      for (const d of p.dates) firstByYear[d.slice(0, 4)] = firstByYear[d.slice(0, 4)] || d;
+      for (const [y, d] of Object.entries(firstByYear)) (byYear[y] = byYear[y] || []).push({ ...p, date: d });
     }
     const count = (n) => `${n} stamp${n === 1 ? "" : "s"}`;
     for (const y of Object.keys(byYear).sort().reverse()) {
-      const places = byYear[y].sort((a, b) => a.first.localeCompare(b.first) || a.label.localeCompare(b.label));
+      const places = byYear[y].sort((a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label));
       passportRoot.appendChild(passportPage(y, count(places.length), places));
+    }
+    if (homes.length) {
+      homes.sort((a, b) => a.label.localeCompare(b.label));
+      passportRoot.appendChild(passportPage("Lived", `${count(homes.length)} · places you've called home`, homes,
+        "", PAGE_ROWS.slice(0, 2)));
     }
     if (undated.length) {
       undated.sort((a, b) => a.label.localeCompare(b.label));

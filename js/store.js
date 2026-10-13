@@ -128,6 +128,42 @@ window.Store = (() => {
     notify();
   }
 
+  // ---- trips ----
+  // A trip is one memory covering several places (Utah + Zion + Bryce).
+  // It's stored as a copy of the note on each place, linked by a shared
+  // `trip` id, so everything that reads per-place notes keeps working.
+  function removeTripEntries(trip) {
+    for (const [key, entries] of Object.entries(allNotes())) {
+      if (entries.some((e) => e.trip === trip)) overrides.notes[key] = entries.filter((e) => e.trip !== trip);
+    }
+  }
+
+  function writeTrip(trip, keys, from, to, text) {
+    const range = to && to !== from ? to : null;
+    for (const key of keys) {
+      overrides.notes[key] = notesFor(key).concat([{ from: from || null, to: range, text: text || "", trip }]);
+    }
+    save();
+    schedulePush();
+    notify();
+  }
+
+  function addTrip(keys, from, to, text) {
+    writeTrip("t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), keys, from, to, text);
+  }
+
+  function updateTrip(trip, keys, from, to, text) {
+    removeTripEntries(trip);
+    writeTrip(trip, keys, from, to, text);
+  }
+
+  function deleteTrip(trip) {
+    removeTripEntries(trip);
+    save();
+    schedulePush();
+    notify();
+  }
+
   function counts() {
     const names = Object.keys(window.COUNTRY_META);
     const sovereign = names.filter((n) => window.COUNTRY_META[n][2]);
@@ -440,6 +476,7 @@ window.Store = (() => {
   return {
     get, cycle, set, counts, exportFile, clearLocal,
     notesFor, allNotes, addNote, updateNote, deleteNote,
+    addTrip, updateTrip, deleteTrip,
     onChange: (cb) => listeners.push(cb),
     compareWith, compareOff, compareStatus, compareCounts,
     comparing: () => (comparing ? { a: comparing.a.name, b: comparing.b.name } : null),
