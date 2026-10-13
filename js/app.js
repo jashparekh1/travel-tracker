@@ -18,7 +18,7 @@
 
   const path = d3.geoPath(projection);
   let zoomK = 1;
-  const PARK_ZOOM = 2.5; // pins appear past this zoom level
+  const PARK_ZOOM = 3; // pins appear past this zoom level in All view
 
   const [world, usStatesGeo, indiaStatesGeo, lakesGeo, citiesRaw] = await Promise.all([
     d3.json("data/countries-50m.json"),
@@ -27,8 +27,47 @@
     d3.json("data/lakes-50m.json"),
     d3.json("data/cities.json?v=2"),
   ]);
+  // Long straight edges in the map data (e.g. the US/Canada 49th parallel)
+  // are stored as just two points. d3 draws great-circle arcs between
+  // vertices, so those edges bow away from the parallel, and the state and
+  // country layers bow differently, leaving an unfilled wedge along the
+  // border. Interpolating every half degree makes every layer follow it.
+  function densifyLine(pts, step = 0.5) {
+    const out = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, y0] = pts[i];
+      const [x1, y1] = pts[i + 1];
+      out.push(pts[i]);
+      const n = Math.abs(x1 - x0) > 180 ? 1 // antimeridian crossing
+        : Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) / step);
+      for (let j = 1; j < n; j++) out.push([x0 + (x1 - x0) * j / n, y0 + (y1 - y0) * j / n]);
+    }
+    out.push(pts[pts.length - 1]);
+    return out;
+  }
+  function densify(features) {
+    for (const f of features) {
+      const g = f.geometry;
+      if (g.type === "Polygon") g.coordinates = g.coordinates.map((r) => densifyLine(r));
+      else if (g.type === "MultiPolygon") g.coordinates = g.coordinates.map((p) => p.map((r) => densifyLine(r)));
+    }
+    return features;
+  }
   // One layer for every clickable subdivision (US states + Indian states/UTs).
-  const stateFeatures = usStatesGeo.features.concat(indiaStatesGeo.features);
+  const stateFeatures = densify(usStatesGeo.features.concat(indiaStatesGeo.features));
+
+  // Countries: decode the quantized TopoJSON arcs to plain coordinates,
+  // densify them, and drop the transform so topojson reads the arcs as-is
+  // (polygons and border meshes all share these arcs).
+  (function densifyTopology(topo) {
+    const [sx, sy] = topo.transform.scale;
+    const [tx, ty] = topo.transform.translate;
+    topo.arcs = topo.arcs.map((arc) => {
+      let x = 0, y = 0;
+      return densifyLine(arc.map(([dx, dy]) => { x += dx; y += dy; return [x * sx + tx, y * sy + ty]; }));
+    });
+    delete topo.transform;
+  })(world);
   // Phones get ranks 0-2 only; desktop keeps 0-3.
   const MAX_CITY_RANK = window.matchMedia("(max-width: 640px)").matches ? 2 : 3;
   const cities = citiesRaw
@@ -77,12 +116,15 @@
   // City labels: display-only atlas dressing, revealed progressively by
   // importance rank. Never intercepts clicks (pointer-events: none).
   const citiesLayer = svg.append("g").attr("class", "cities").attr("pointer-events", "none");
-  const CITY_ZOOM = [1.2, 1.6, 2.2, 3.2]; // min zoom per rank 0..3
+  const CITY_ZOOM = [1.5, 2.2, 3.2, 4.5]; // min zoom per rank 0..3
   const cityNodes = citiesLayer.selectAll("g")
     .data(cities).join("g")
     .attr("class", (d) => "city" + (d.cap ? " capital" : ""));
   cityNodes.append("circle").attr("r", (d) => (d.rank <= 1 ? 2.5 : 2));
   cityNodes.append("text").attr("x", 5).attr("y", 3).text((d) => d.name);
+  // Declutter priority: capitals count as rank <= 1, then by rank.
+  const cityPriority = (d) => (d.cap ? Math.min(d.rank, 1) : d.rank);
+  const citiesByRank = cities.slice().sort((a, b) => cityPriority(a) - cityPriority(b) || b.cap - a.cap);
 
   const parksLayer = svg.append("g");
   const PIN = "M0,0 C-5,-8 -9,-11 -9,-16 a9,9 0 1,1 18,0 C9,-11 5,-8 0,0 Z";
@@ -92,7 +134,7 @@
   parkPins.append("path").attr("class", "pin-body").attr("d", PIN);
   parkPins.append("circle").attr("cy", -16).attr("r", 3).attr("fill", "#0b1020");
   parkPins.append("text").attr("class", "park-label")
-    .attr("x", 8).attr("y", -13).text((d) => d.name);
+    .attr("text-anchor", "middle").text((d) => d.name);
 
   // World wonders & landmarks: same pin mechanics, star glyph, own view.
   const landmarksLayer = svg.append("g");
@@ -103,13 +145,23 @@
   landmarkPins.append("text").attr("class", "pin-star")
     .attr("y", -13).attr("text-anchor", "middle").text("★");
   landmarkPins.append("text").attr("class", "park-label")
-    .attr("x", 8).attr("y", -13).text((d) => d.name);
+    .attr("text-anchor", "middle").text((d) => d.name);
+
+  // Label widths for the declutter pass, measured once per name.
+  const measureCtx = document.createElement("canvas").getContext("2d");
+  const fontFamily = getComputedStyle(document.body).fontFamily;
+  measureCtx.font = `600 10.5px ${fontFamily}`;
+  window.PARKS.concat(window.LANDMARKS).forEach((d) => { d._w = measureCtx.measureText(d.name).width; });
+  cities.forEach((d) => {
+    measureCtx.font = d.cap ? `700 10.5px ${fontFamily}` : `500 10px ${fontFamily}`;
+    d._w = measureCtx.measureText(d.name).width;
+  });
 
   // Some polygons (e.g. Siachen Glacier) track as part of another country.
   const countryName = (d) => window.MERGED_INTO[d.properties.name] || d.properties.name;
 
-  // View mode: "all" (countries + states + parks), "countries", or "parks".
-  // Always opens in "all".
+  // View mode: "all" (countries + states + pins), "countries", "states"
+  // (US + Indian states only), "parks", or "landmarks". Always opens in "all".
   let viewMode = "all";
 
   // ---- coloring ----
@@ -139,17 +191,18 @@
       // countries (US, India); painting the country polygon too bleeds
       // through lake cutouts and coastline fringes the state shapes don't
       // exactly cover.
-      const cls = viewMode === "parks" || viewMode === "landmarks" ? "status-none"
+      const cls = viewMode === "parks" || viewMode === "landmarks" || viewMode === "states" ? "status-none"
         : viewMode === "all" && window.SUBDIVIDED[n] ? "status-none"
         : regionClass("countries", n);
       return "country " + cls;
     });
-    // States: colored in All view, outline-only in Parks view, hidden in
-    // Countries and Wonders views.
+    // States: colored in All and States views, outline-only in Parks view,
+    // hidden in Countries and Wonders views.
+    const statesEditable = viewMode === "all" || viewMode === "states";
     statePaths
-      .attr("display", viewMode === "all" || viewMode === "parks" ? null : "none")
+      .attr("display", statesEditable || viewMode === "parks" ? null : "none")
       .attr("class", (d) => "state " +
-        (viewMode === "all" ? regionClass("states", d.properties.name) : "status-none"));
+        (statesEditable ? regionClass("states", d.properties.name) : "status-none"));
     parkPins.attr("class", (d) => "park " +
       (cmp ? compareClass("parks", d.name) : "st-" + (Store.get("parks", d.name) || "none")));
     landmarkPins.attr("class", (d) => "park landmark " +
@@ -167,17 +220,23 @@
       const cc = Store.compareCounts();
       const cat = viewMode === "parks" ? cc.parks
         : viewMode === "landmarks" ? cc.landmarks : cc.countries;
-      document.getElementById("cmp-count-both").textContent = cat.both;
-      document.getElementById("cmp-count-a").textContent = cat.a;
-      document.getElementById("cmp-count-b").textContent = cat.b;
+      const statesCat = {
+        both: cc.states.both + cc.indiaStates.both,
+        a: cc.states.a + cc.indiaStates.a,
+        b: cc.states.b + cc.indiaStates.b,
+      };
+      const shown = viewMode === "states" ? statesCat : cat;
+      document.getElementById("cmp-count-both").textContent = shown.both;
+      document.getElementById("cmp-count-a").textContent = shown.a;
+      document.getElementById("cmp-count-b").textContent = shown.b;
       document.getElementById("cmp-unit").textContent =
         viewMode === "parks" ? "counting national parks"
         : viewMode === "landmarks" ? "counting wonders"
+        : viewMode === "states" ? `counting states · US: ${cc.states.both} both, ${cc.states.a} / ${cc.states.b} only` +
+          ` · India: ${cc.indiaStates.both} both, ${cc.indiaStates.a} / ${cc.indiaStates.b} only`
         : `counting countries · US states: ${cc.states.both} both, ${cc.states.a} / ${cc.states.b} only` +
           ` · India: ${cc.indiaStates.both} both, ${cc.indiaStates.a} / ${cc.indiaStates.b} only`;
     }
-    svg.classed("parks-mode", viewMode === "parks");
-    svg.classed("wonders-mode", viewMode === "landmarks");
     updateStats();
   }
 
@@ -206,52 +265,71 @@
     if (viewMode !== "countries") statePaths.attr("d", path);
     lakePaths.attr("d", path);
 
-    const showParks = viewMode === "parks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
     const [cx, cy] = [-projection.rotate()[0], -projection.rotate()[1]];
+    const pinScale = Math.max(0.5, Math.min(1.1, 0.45 + 0.18 * Math.log2(zoomK)));
+
+    // Declutter: screen boxes claimed so far this frame. Pins claim first,
+    // then pin names (your visited / wish-list ones win ties), then city
+    // labels by importance; anything that would overlap is hidden, so more
+    // names appear as you zoom in and things spread apart.
+    const taken = [];
+    const claim = (b) => {
+      for (const t of taken) if (b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]) return false;
+      taken.push(b);
+      return true;
+    };
+
+    const showParks = viewMode === "parks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
+    const showLandmarks = viewMode === "landmarks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
+    const visiblePins = [];
+    function placePins(pins, type, show, wasShown) {
+      if (!show && !wasShown) return;
+      pins.each(function (d) {
+        d._p = show && d3.geoDistance([d.lon, d.lat], [cx, cy]) <= 1.45 ? projection([d.lon, d.lat]) : null;
+        if (d._p) visiblePins.push({ d, type, label: this.querySelector("text.park-label") });
+      });
+      pins.attr("display", (d) => (d._p ? null : "none"))
+        .attr("transform", (d) => (d._p ? `translate(${d._p[0]},${d._p[1]}) scale(${pinScale})` : null));
+    }
+    placePins(parkPins, "parks", showParks, parksShown);
+    placePins(landmarkPins, "landmarks", showLandmarks, landmarksShown);
+    parksShown = showParks;
+    landmarksShown = showLandmarks;
+
+    // Names sit centered just above the pin head, at a constant on-screen
+    // size despite the pin scaling.
+    const labelY = -(25 * pinScale + 4);
+    for (const { d } of visiblePins) {
+      const [x, y] = d._p;
+      taken.push([x - 9 * pinScale, y - 25 * pinScale, x + 9 * pinScale, y]);
+    }
+    const mine = (v) => (Store.get(v.type, v.d.name) ? 0 : 1);
+    visiblePins.sort((a, b) => mine(a) - mine(b));
+    for (const v of visiblePins) {
+      const [x, y] = v.d._p;
+      const hw = v.d._w / 2 + 2;
+      const ok = claim([x - hw, y + labelY - 10, x + hw, y + labelY + 3]);
+      v.label.style.display = ok ? "block" : "none";
+      if (ok) {
+        v.label.setAttribute("y", labelY);
+        v.label.setAttribute("transform", `scale(${1 / pinScale})`);
+      }
+    }
 
     const anyCities = viewMode !== "parks" && viewMode !== "landmarks" && zoomK >= CITY_ZOOM[0];
     if (anyCities || citiesShown) {
-      cityNodes.attr("display", (d) => {
-        if (!anyCities) return "none";
-        const minZoom = CITY_ZOOM[d.cap ? Math.min(d.rank, 1) : d.rank];
-        if (zoomK < minZoom) return "none";
-        return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.4 ? "none" : null;
-      }).attr("transform", (d) => {
+      for (const d of citiesByRank) {
+        d._p = null;
+        if (!anyCities || zoomK < CITY_ZOOM[cityPriority(d)]) continue;
+        if (d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.4) continue;
         const p = projection([d.lon, d.lat]);
-        return p ? `translate(${p[0]},${p[1]})` : null;
-      });
+        if (p && claim([p[0] - 3, p[1] - 8, p[0] + 7 + d._w, p[1] + 5])) d._p = p;
+      }
+      cityNodes.attr("display", (d) => (d._p ? null : "none"))
+        .attr("transform", (d) => (d._p ? `translate(${d._p[0]},${d._p[1]})` : null));
     }
     citiesShown = anyCities;
-    if (showParks || parksShown) {
-      const pinScale = Math.max(0.5, Math.min(1.1, 0.45 + 0.18 * Math.log2(zoomK)));
-      parkPins.attr("display", (d) => {
-        if (!showParks) return "none";
-        return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.45 ? "none" : null;
-      }).attr("transform", (d) => {
-        const p = projection([d.lon, d.lat]);
-        return p ? `translate(${p[0]},${p[1]}) scale(${pinScale})` : null;
-      });
-      // Labels keep a constant on-screen size despite the pin scaling.
-      parkPins.select("text.park-label").attr("transform", `scale(${1 / pinScale})`);
-    }
-    parksShown = showParks;
 
-    const showLandmarks = viewMode === "landmarks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
-    if (showLandmarks || landmarksShown) {
-      const pinScale = Math.max(0.5, Math.min(1.1, 0.45 + 0.18 * Math.log2(zoomK)));
-      landmarkPins.attr("display", (d) => {
-        if (!showLandmarks) return "none";
-        return d3.geoDistance([d.lon, d.lat], [cx, cy]) > 1.45 ? "none" : null;
-      }).attr("transform", (d) => {
-        const p = projection([d.lon, d.lat]);
-        return p ? `translate(${p[0]},${p[1]}) scale(${pinScale})` : null;
-      });
-      landmarkPins.select("text.park-label").attr("transform", `scale(${1 / pinScale})`);
-    }
-    landmarksShown = showLandmarks;
-
-    // In All view, park/wonder names fade in once you're properly close.
-    svg.classed("np-labels", viewMode === "all" && zoomK >= 4);
     document.getElementById("park-hint").style.display =
       viewMode === "all" && !showParks ? "block" : "none";
   }
@@ -318,7 +396,7 @@
 
   const countrySub = (n) => {
     if (Store.comparing()) return compareSub("countries", n);
-    if (viewMode === "parks" || viewMode === "landmarks") return "switch to All to edit";
+    if (viewMode === "parks" || viewMode === "landmarks" || viewMode === "states") return "switch to All to edit";
     if (window.SUBDIVIDED[n] && viewMode === "all") return "Click your states instead";
     return regionTooltip("countries", n);
   };
@@ -330,7 +408,7 @@
     })
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
-      if (dragMoved || viewMode === "parks" || viewMode === "landmarks") return;
+      if (dragMoved || viewMode === "parks" || viewMode === "landmarks" || viewMode === "states") return;
       const n = countryName(d);
       if (window.SUBDIVIDED[n] && viewMode === "all") return; // states handle it
       Store.cycle("countries", n);
@@ -345,13 +423,13 @@
     });
 
   const stateSub = (n) => Store.comparing() ? compareSub("states", n)
-    : viewMode !== "all" ? "parks view — switch to All to edit"
+    : viewMode !== "all" && viewMode !== "states" ? "parks view — switch to All to edit"
     : regionTooltip("states", n);
   statePaths
     .on("mousemove", (event, d) => showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, stateSub(d.properties.name)))
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
-      if (dragMoved || viewMode !== "all") return;
+      if (dragMoved || (viewMode !== "all" && viewMode !== "states")) return;
       Store.cycle("states", d.properties.name);
       showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, stateSub(d.properties.name));
       showMarkToast("states", d.properties.name, flagImg("states", d.properties.name) + " " + d.properties.name);
@@ -511,7 +589,7 @@
   function setViewMode(mode) {
     viewMode = mode;
     segButtons.forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
-    if (mode === "countries") card.classList.remove("open"); // pins are hidden
+    if (mode === "countries" || mode === "states") card.classList.remove("open"); // pins are hidden
     recolor();
     render();
   }

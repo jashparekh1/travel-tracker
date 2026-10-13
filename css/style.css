@@ -170,7 +170,7 @@ body.page .topbar { position: sticky; }
 .park { cursor: pointer; }
 .park .pin-body { stroke: #0b1020; stroke-width: 1; }
 
-/* Pin name labels: shown in Parks/Wonders views, and in All when zoomed */
+/* Pin name labels: shown/hidden per frame by the declutter pass in app.js */
 .park-label {
   display: none;
   font-size: 10.5px;
@@ -180,9 +180,6 @@ body.page .topbar { position: sticky; }
   stroke: #0b1020;
   stroke-width: 2.5px;
 }
-svg.parks-mode .park:not(.landmark) .park-label { display: block; }
-svg.wonders-mode .landmark .park-label { display: block; }
-svg.np-labels .park-label { display: block; }
 
 .pin-star {
   font-size: 9px;
