@@ -233,6 +233,15 @@
     el.classList.add("in-passport");
     setStampStatus(el, p.s, p.date);
     if (p.item) loadThumb(p.item, el.querySelector(".stamp-photo"));
+    // Year pages badge each stamp: a gold star the first year you went
+    // somewhere, then the visit number (②, ③ …) on later years.
+    if (p.visitNo) {
+      const badge = document.createElement("span");
+      badge.className = "visit-badge " + (p.visitNo === 1 ? "first" : "repeat");
+      badge.textContent = p.visitNo === 1 ? "★" : p.visitNo;
+      badge.title = p.visitNo === 1 ? "First visit" : `Visit #${p.visitNo}`;
+      el.appendChild(badge);
+    }
     return el;
   }
 
@@ -298,15 +307,19 @@
     for (const p of got) {
       if (p.s === "lived") { homes.push(p); continue; }
       if (!p.dates.length) { undated.push(p); continue; }
-      // One stamp per year, postmarked with that year's first visit.
+      // One stamp per year, postmarked with that year's first visit and
+      // numbered by how many years you've been (1 = somewhere new).
       const firstByYear = {};
       for (const d of p.dates) firstByYear[d.slice(0, 4)] = firstByYear[d.slice(0, 4)] || d;
-      for (const [y, d] of Object.entries(firstByYear)) (byYear[y] = byYear[y] || []).push({ ...p, date: d });
+      Object.keys(firstByYear).sort().forEach((y, i) =>
+        (byYear[y] = byYear[y] || []).push({ ...p, date: firstByYear[y], visitNo: i + 1 }));
     }
     const count = (n) => `${n} stamp${n === 1 ? "" : "s"}`;
     for (const y of Object.keys(byYear).sort().reverse()) {
       const places = byYear[y].sort((a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label));
-      passportRoot.appendChild(passportPage(y, count(places.length), places));
+      const fresh = places.filter((p) => p.visitNo === 1).length;
+      passportRoot.appendChild(passportPage(y,
+        count(places.length) + (fresh ? ` · <b class="new-count">★ ${fresh} new</b>` : ""), places));
     }
     if (homes.length) {
       homes.sort((a, b) => a.label.localeCompare(b.label));

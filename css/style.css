@@ -587,6 +587,31 @@ h2.continent {
 /* ---------- passport view ---------- */
 .view-switch { display: inline-flex; margin: 6px 0 16px; }
 .stamp.in-passport { cursor: default; }
+/* Year-page badge, top-left: gold star = first visit, circled number = repeat. */
+.visit-badge {
+  position: absolute;
+  top: 11px;
+  left: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.visit-badge.first {
+  font-size: 15px;
+  line-height: 1;
+  color: #f2b51b;
+  text-shadow: 0 0 1px #5a3d00, 0 1px 1px #0006;
+}
+.visit-badge.repeat {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  color: var(--ink);
+  font: 700 9.5px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.passport-page header .new-count { color: #f2b51b; font-weight: 600; }
 .passport-cover {
   display: flex;
   align-items: center;
