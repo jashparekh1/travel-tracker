@@ -150,8 +150,8 @@
   // Pin groups: pins too close to tell apart on screen merge into one
   // count bubble until you zoom in. Drawn above the pins.
   const groupsLayer = svg.append("g").attr("class", "pin-groups");
-  const GROUP_PX = 26;          // pins closer than this (screen px) merge
-  const GROUP_MAX_ZOOM = 14;    // past this, always show individual pins
+  const GROUP_PX = 18;          // pins closer than this (screen px) merge
+  const GROUP_MAX_ZOOM = 9;     // past this, always show individual pins
 
   // Label widths for the declutter pass, measured once per name.
   const measureCtx = document.createElement("canvas").getContext("2d");
@@ -253,7 +253,6 @@
       `<span>🌍 <b>${c.countries}</b>/${c.countriesTotal} countries` +
       (c.territories ? ` <i>+${c.territories} terr.</i>` : "") + `</span>` +
       `<span>🇺🇸 <b>${c.states}</b>/${c.statesTotal} states</span>` +
-      `<span>🇮🇳 <b>${c.indiaStates}</b>/${c.indiaStatesTotal} states</span>` +
       `<span>🏞️ <b>${c.parks}</b>/${c.parksTotal} parks</span>` +
       `<span>⭐ <b>${c.landmarks}</b>/${c.landmarksTotal} wonders</span>`;
   }
@@ -364,15 +363,19 @@
     });
 
     // Names sit centered just above the pin head, at a constant on-screen
-    // size despite the pin scaling.
+    // size despite the pin scaling. If that spot is taken (e.g. Kings Canyon
+    // right above Sequoia), the name drops just below the pin tip instead.
     const labelY = -(25 * pinScale + 4);
+    const LABEL_BELOW_Y = 13;
     for (const v of singles) {
       const [x, y] = v.d._p;
       const hw = v.d._w / 2 + 2;
-      const ok = claim([x - hw, y + labelY - 10, x + hw, y + labelY + 3]);
-      v.label.style.display = ok ? "block" : "none";
-      if (ok) {
-        v.label.setAttribute("y", labelY);
+      const ly = claim([x - hw, y + labelY - 10, x + hw, y + labelY + 3]) ? labelY
+        : claim([x - hw, y + 2, x + hw, y + LABEL_BELOW_Y + 3]) ? LABEL_BELOW_Y
+        : null;
+      v.label.style.display = ly !== null ? "block" : "none";
+      if (ly !== null) {
+        v.label.setAttribute("y", ly);
         v.label.setAttribute("transform", `scale(${1 / pinScale})`);
       }
     }
