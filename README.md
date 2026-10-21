@@ -13,7 +13,7 @@ just a static site.
   Jammu & Kashmir and Ladakh drawn in full. `scripts/apply-india-claim.py`
   redraws India's outline to match, and `scripts/build-india-states.py`
   builds the states layer from district data
-- **All 63 national parks** as pins (zoom in on the US) — click one for a photo
+- **All 64 national parks** as pins (zoom in on the US) — click one for a photo
   (pulled from Wikipedia, free) and a "mark as visited" button
 - **Major cities** appear as labeled dots the deeper you zoom (importance-ranked
   by Natural Earth cartographers, capitals bolded) — display-only atlas dressing,
@@ -97,7 +97,7 @@ index.html         the globe
 visited.html       tabbed checklists (countries / states / parks)
 data/my-travels.js YOUR data — the only file you ever need to edit/commit
 data/*.json        map geometry (vendored: world countries + US states)
-js/parks.js        the 63 national parks (name, state, coords, wiki title)
+js/parks.js        the 64 national parks (name, state, coords, wiki title)
 js/continents.js   country → continent mapping + display names
 js/store.js        seed + localStorage merge, export
 js/app.js          globe rendering & interaction

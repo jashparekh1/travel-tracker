@@ -1,4 +1,4 @@
-// All 63 US National Parks. `wiki` is the Wikipedia article title used to
+// All 64 US National Parks. `wiki` is the Wikipedia article title used to
 // fetch a photo (free, no API key). Coordinates are approximate park centers.
 
 window.PARKS = [
@@ -14,6 +14,7 @@ window.PARKS = [
   { name: "Capitol Reef", state: "Utah", lat: 38.20, lon: -111.17, wiki: "Capitol Reef National Park" },
   { name: "Carlsbad Caverns", state: "New Mexico", lat: 32.17, lon: -104.44, wiki: "Carlsbad Caverns National Park" },
   { name: "Channel Islands", state: "California", lat: 34.01, lon: -119.42, wiki: "Channel Islands National Park" },
+  { name: "Chiricahua", state: "Arizona", lat: 32.01, lon: -109.36, wiki: "Chiricahua National Park" },
   { name: "Congaree", state: "South Carolina", lat: 33.78, lon: -80.78, wiki: "Congaree National Park" },
   { name: "Crater Lake", state: "Oregon", lat: 42.94, lon: -122.10, wiki: "Crater Lake National Park" },
   { name: "Cuyahoga Valley", state: "Ohio", lat: 41.24, lon: -81.55, wiki: "Cuyahoga Valley National Park" },
