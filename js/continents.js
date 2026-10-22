@@ -59,7 +59,7 @@ window.US_STATE_CODES = {
   "South Dakota": "us-sd", "Tennessee": "us-tn", "Texas": "us-tx",
   "Utah": "us-ut", "Vermont": "us-vt", "Virginia": "us-va",
   "Washington": "us-wa", "West Virginia": "us-wv", "Wisconsin": "us-wi",
-  "Wyoming": "us-wy", "District of Columbia": "", "Puerto Rico": "pr",
+  "Wyoming": "us-wy", "District of Columbia": "us-dc", "Puerto Rico": "pr",
 };
 
 // Note dates are "YYYY-MM" months. Old entries used {when} instead of {from}.
