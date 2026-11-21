@@ -169,20 +169,8 @@ body.page .topbar { position: sticky; }
 .city.capital circle { fill: #fff; }
 .city.capital text { font-weight: 700; font-size: 10.5px; }
 
-/* Pins: the 📍 emoji everywhere. --tint recolors it per status (it's
-   naturally red = been); hover adds a soft glow on top of the tint. */
-.park { cursor: pointer; --tint: brightness(1); }
-.park .pin-emoji { font-size: 24px; filter: var(--tint) drop-shadow(0 1px 1.5px #000a); }
-.park:hover .pin-emoji { filter: var(--tint) brightness(1.2) drop-shadow(0 0 3px #fff8); }
-.park.st-none { --tint: grayscale(1) brightness(0.95); }
-.park.st-none .pin-emoji { opacity: 0.8; }
-.park.st-lived { --tint: hue-rotate(115deg) saturate(1.1) brightness(1.2); }
-.park.st-want { --tint: hue-rotate(200deg) saturate(0.85) brightness(1.35); }
-/* Compare colors come after the status rules — source order wins. */
-.park.cmp-both { --tint: hue-rotate(205deg) saturate(1.1) brightness(1.2); }
-.park.cmp-a { --tint: hue-rotate(35deg) saturate(1.2) brightness(1.25); }
-.park.cmp-b { --tint: hue-rotate(115deg) saturate(1.1) brightness(1.2); }
-.park.cmp-none { --tint: grayscale(1) brightness(0.95); }
+.park { cursor: pointer; }
+.park .pin-body { stroke: #0b1020; stroke-width: 1; }
 
 /* Pin name labels: shown/hidden per frame by the declutter pass in app.js */
 .park-label {
@@ -195,6 +183,23 @@ body.page .topbar { position: sticky; }
   stroke-width: 2.5px;
 }
 
+.pin-star {
+  font-size: 9px;
+  font-weight: 700;
+  fill: #0b1020;
+  pointer-events: none;
+}
+.park .pin-body { fill: #7c8db0; }
+.park.st-visited .pin-body { fill: #ef4444; }
+.park.st-want .pin-body { fill: var(--want); }
+.park.st-lived .pin-body { fill: var(--lived); }
+.place-pin .pin-dot { fill: #fff; pointer-events: none; }
+/* Compare colors come after the status rules — source order wins. */
+.park.cmp-both .pin-body { fill: var(--accent); }
+.park.cmp-a .pin-body { fill: var(--visited); }
+.park.cmp-b .pin-body { fill: var(--lived); }
+.park.cmp-none .pin-body { fill: #7c8db0; }
+.park:hover .pin-body { stroke: #fff; }
 
 /* Pin groups: count bubble for pins too close together to tell apart */
 .pin-group { cursor: pointer; }

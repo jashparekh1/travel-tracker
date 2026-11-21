@@ -126,29 +126,28 @@
   const cityPriority = (d) => (d.cap ? Math.min(d.rank, 1) : d.rank);
   const citiesByRank = cities.slice().sort((a, b) => cityPriority(a) - cityPriority(b) || b.cap - a.cap);
 
-  // Every pin (parks, wonders, my places) is the 📍 emoji, nudged so its
-  // needle tip sits on the spot; CSS hue-shifts it per status.
-  const appendPin = (sel) => sel.append("text").attr("class", "pin-emoji")
-    .attr("text-anchor", "middle").attr("y", -1).text("📍");
-
   const parksLayer = svg.append("g");
+  const PIN = "M0,0 C-5,-8 -9,-11 -9,-16 a9,9 0 1,1 18,0 C9,-11 5,-8 0,0 Z";
   const parkPins = parksLayer.selectAll("g")
     .data(window.PARKS).join("g")
     .attr("class", "park");
-  appendPin(parkPins);
+  parkPins.append("path").attr("class", "pin-body").attr("d", PIN);
+  parkPins.append("circle").attr("cy", -16).attr("r", 3).attr("fill", "#0b1020");
   parkPins.append("text").attr("class", "park-label")
     .attr("text-anchor", "middle").text((d) => d.name);
 
-  // World wonders & landmarks: same pin mechanics, own view.
+  // World wonders & landmarks: same pin mechanics, star glyph, own view.
   const landmarksLayer = svg.append("g");
   const landmarkPins = landmarksLayer.selectAll("g")
     .data(window.LANDMARKS).join("g")
     .attr("class", "park landmark");
-  appendPin(landmarkPins);
+  landmarkPins.append("path").attr("class", "pin-body").attr("d", PIN);
+  landmarkPins.append("text").attr("class", "pin-star")
+    .attr("y", -13).attr("text-anchor", "middle").text("★");
   landmarkPins.append("text").attr("class", "park-label")
     .attr("text-anchor", "middle").text((d) => d.name);
 
-  // My places (searched cities / regions): same pin. The data
+  // My places (searched cities / regions): same pin, white dot. The data
   // join is redone on every store change (see syncPlacePins).
   const placesLayer = svg.append("g").attr("class", "places");
   let placeMarkers = placesLayer.selectAll("g.place-pin");
@@ -218,7 +217,8 @@
       .data(Store.places(), (d) => d.id)
       .join((enter) => {
         const g = enter.append("g");
-        appendPin(g);
+        g.append("path").attr("class", "pin-body").attr("d", PIN);
+        g.append("circle").attr("class", "pin-dot").attr("cy", -16).attr("r", 3.4);
         g.append("text").attr("class", "park-label").attr("text-anchor", "middle");
         g.on("mousemove", (event, d) => {
           event.stopPropagation();
