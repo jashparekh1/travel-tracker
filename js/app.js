@@ -126,26 +126,32 @@
   const cityPriority = (d) => (d.cap ? Math.min(d.rank, 1) : d.rank);
   const citiesByRank = cities.slice().sort((a, b) => cityPriority(a) - cityPriority(b) || b.cap - a.cap);
 
+  // Every pin (parks, wonders, my places) is the 📍 emoji, nudged so its
+  // needle tip sits on the spot; CSS hue-shifts it per status.
+  const appendPin = (sel) => sel.append("text").attr("class", "pin-emoji")
+    .attr("text-anchor", "middle").attr("y", -1).text("📍");
+
   const parksLayer = svg.append("g");
-  const PIN = "M0,0 C-5,-8 -9,-11 -9,-16 a9,9 0 1,1 18,0 C9,-11 5,-8 0,0 Z";
   const parkPins = parksLayer.selectAll("g")
     .data(window.PARKS).join("g")
     .attr("class", "park");
-  parkPins.append("path").attr("class", "pin-body").attr("d", PIN);
-  parkPins.append("circle").attr("cy", -16).attr("r", 3).attr("fill", "#0b1020");
+  appendPin(parkPins);
   parkPins.append("text").attr("class", "park-label")
     .attr("text-anchor", "middle").text((d) => d.name);
 
-  // World wonders & landmarks: same pin mechanics, star glyph, own view.
+  // World wonders & landmarks: same pin mechanics, own view.
   const landmarksLayer = svg.append("g");
   const landmarkPins = landmarksLayer.selectAll("g")
     .data(window.LANDMARKS).join("g")
     .attr("class", "park landmark");
-  landmarkPins.append("path").attr("class", "pin-body").attr("d", PIN);
-  landmarkPins.append("text").attr("class", "pin-star")
-    .attr("y", -13).attr("text-anchor", "middle").text("★");
+  appendPin(landmarkPins);
   landmarkPins.append("text").attr("class", "park-label")
     .attr("text-anchor", "middle").text((d) => d.name);
+
+  // My places (searched cities / regions): same pin. The data
+  // join is redone on every store change (see syncPlacePins).
+  const placesLayer = svg.append("g").attr("class", "places");
+  let placeMarkers = placesLayer.selectAll("g.place-pin");
 
   // Pin groups: pins too close to tell apart on screen merge into one
   // count bubble until you zoom in. Drawn above the pins.
@@ -170,6 +176,14 @@
   // View mode: "all" (countries + states + pins), "countries", "states"
   // (US + Indian states only), "parks", or "landmarks". Always opens in "all".
   let viewMode = "all";
+  // Map mode: "countries" (fills + place pins on top) or "places" (pins
+  // only; been-but-no-places regions drawn faintly).
+  let mapMode = "countries";
+  const STATE_COUNTRY = {};
+  for (const [c, subs] of Object.entries(window.SUBDIVIDED)) for (const n of subs) STATE_COUNTRY[n] = c;
+  const BEEN = (s) => s === "visited" || s === "lived";
+  // Pin status for any visible pin (places carry their own).
+  const pinStatus = (type, d) => (type === "places" ? d.status : Store.get(type, d.name));
 
   // ---- coloring ----
   function statusClass(type, name) {
@@ -190,10 +204,54 @@
       : "neither yet";
   }
 
+  // Places mode: a region you've been to shows faintly until it has
+  // places of its own, so the map never looks emptier than your travels.
+  function faintClass(type, name) {
+    if (!BEEN(Store.get(type, name))) return "status-none";
+    const key = type === "countries" ? "country" : "state";
+    return Store.places().some((p) => p[key] === name) ? "status-none" : "status-faint";
+  }
+
+  function syncPlacePins() {
+    measureCtx.font = PIN_FONT;
+    placeMarkers = placesLayer.selectAll("g.place-pin")
+      .data(Store.places(), (d) => d.id)
+      .join((enter) => {
+        const g = enter.append("g");
+        appendPin(g);
+        g.append("text").attr("class", "park-label").attr("text-anchor", "middle");
+        g.on("mousemove", (event, d) => {
+          event.stopPropagation();
+          const where = [d.state, d.country && displayName(d.country)].filter(Boolean).join(", ");
+          showTooltip(event, "📍 " + d.name,
+            `${Places.STATUS_WORD[d.status]} · ${where || Places.kindLabel(d.kind)} · click for details`);
+        })
+          .on("mouseout", hideTooltip)
+          .on("click", (event, d) => {
+            if (dragMoved) return;
+            event.stopPropagation();
+            hideTooltip();
+            openPanel(d.country, d.id);
+          })
+          .on("contextmenu", (event, d) => {
+            event.preventDefault();
+            hideTooltip();
+            openNoteModal("places/" + d.id, d.name);
+          });
+        return g;
+      })
+      .attr("class", (d) => "park place-pin st-" + d.status)
+      .each((d) => { d._w = measureCtx.measureText(d.name).width; });
+    placeMarkers.select("text.park-label").text((d) => d.name);
+  }
+
   function recolor() {
     const cmp = Store.comparing();
+    const placesMode = mapMode === "places" && !cmp;
+    document.body.classList.toggle("places-mode", placesMode);
     countryPaths.attr("class", (d) => {
       const n = countryName(d);
+      if (placesMode) return "country " + (window.SUBDIVIDED[n] ? "status-none" : faintClass("countries", n));
       // In All view the states layer carries the color of subdivided
       // countries (US, India); painting the country polygon too bleeds
       // through lake cutouts and coastline fringes the state shapes don't
@@ -207,9 +265,11 @@
     // hidden in Countries and Wonders views.
     const statesEditable = viewMode === "all" || viewMode === "states";
     statePaths
-      .attr("display", statesEditable || viewMode === "parks" ? null : "none")
+      .attr("display", placesMode || statesEditable || viewMode === "parks" ? null : "none")
       .attr("class", (d) => "state " +
-        (statesEditable ? regionClass("states", d.properties.name) : "status-none"));
+        (placesMode ? faintClass("states", d.properties.name)
+          : statesEditable ? regionClass("states", d.properties.name) : "status-none"));
+    syncPlacePins();
     parkPins.attr("class", (d) => "park " +
       (cmp ? compareClass("parks", d.name) : "st-" + (Store.get("parks", d.name) || "none")));
     landmarkPins.attr("class", (d) => "park landmark " +
@@ -245,6 +305,8 @@
           ` · India: ${cc.indiaStates.both} both, ${cc.indiaStates.a} / ${cc.indiaStates.b} only`;
     }
     updateStats();
+    if (panelCountry !== undefined) renderPanel();
+    requestRender();
   }
 
   function updateStats() {
@@ -268,7 +330,8 @@
   function render() {
     svg.selectAll("path.sphere, path.graticule, path.borders, path.coastline").attr("d", path);
     countryPaths.attr("d", path);
-    if (viewMode !== "countries") statePaths.attr("d", path);
+    const placesMode = mapMode === "places" && !Store.comparing();
+    if (viewMode !== "countries" || placesMode) statePaths.attr("d", path);
     lakePaths.attr("d", path);
 
     const [cx, cy] = [-projection.rotate()[0], -projection.rotate()[1]];
@@ -285,13 +348,17 @@
       return true;
     };
 
-    const showParks = viewMode === "parks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
-    const showLandmarks = viewMode === "landmarks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
+    // Places mode shows only the parks / wonders you've marked, at any zoom.
+    const showParks = placesMode || viewMode === "parks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
+    const showLandmarks = placesMode || viewMode === "landmarks" || (viewMode === "all" && zoomK >= PARK_ZOOM);
+    const showPlaces = !Store.comparing() && (placesMode || viewMode === "all" || viewMode === "countries" || viewMode === "states");
     const visiblePins = [];
     function placePins(pins, type, show, wasShown) {
       if (!show && !wasShown) return;
+      const onlyMine = placesMode && type !== "places";
       pins.each(function (d) {
-        d._p = show && d3.geoDistance([d.lon, d.lat], [cx, cy]) <= 1.45 ? projection([d.lon, d.lat]) : null;
+        const ok = show && (!onlyMine || pinStatus(type, d)) && d3.geoDistance([d.lon, d.lat], [cx, cy]) <= 1.45;
+        d._p = ok ? projection([d.lon, d.lat]) : null;
         if (d._p) visiblePins.push({ d, type, node: this, label: this.querySelector("text.park-label") });
       });
       pins.attr("display", (d) => (d._p ? null : "none"))
@@ -299,12 +366,13 @@
     }
     placePins(parkPins, "parks", showParks, parksShown);
     placePins(landmarkPins, "landmarks", showLandmarks, landmarksShown);
+    placePins(placeMarkers, "places", showPlaces, true);
     parksShown = showParks;
     landmarksShown = showLandmarks;
 
     // Group pins that would overlap. Your marked places seed groups first
     // so a group sits where your visited pin is.
-    const mine = (v) => (Store.get(v.type, v.d.name) ? 0 : 1);
+    const mine = (v) => (pinStatus(v.type, v.d) ? 0 : 1);
     visiblePins.sort((a, b) => mine(a) - mine(b));
     const groups = [];
     for (const v of visiblePins) {
@@ -323,13 +391,11 @@
       g.y = d3.mean(g.members, (m) => m.d._p[1]);
       g.r = 9 + Math.min(6, Math.sqrt(g.members.length) * 1.6);
       // Name the group when every pin shares a state / place ("Utah · 5").
-      const regions = new Set(g.members.map((m) => m.d.state || m.d.place));
+      const regions = new Set(g.members.map((m) =>
+        m.type === "places" ? m.d.country && displayName(m.d.country) : m.d.state || m.d.place));
       g.region = regions.size === 1 ? [...regions][0] : "";
       // Red only when you've been to one of them; wishlist pins don't count.
-      g.visited = g.members.some((m) => {
-        const s = Store.get(m.type, m.d.name);
-        return s === "visited" || s === "lived";
-      });
+      g.visited = g.members.some((m) => BEEN(pinStatus(m.type, m.d)));
       multi.push(g);
     }
 
@@ -395,7 +461,7 @@
     citiesShown = anyCities;
 
     document.getElementById("park-hint").style.display =
-      viewMode === "all" && !showParks ? "block" : "none";
+      viewMode === "all" && !showParks && !placesMode ? "block" : "none";
   }
 
   // Coalesce drag/zoom events into one render per animation frame.
@@ -460,10 +526,17 @@
 
   const countrySub = (n) => {
     if (Store.comparing()) return compareSub("countries", n);
+    if (mapMode === "places") return placesSub("country", n);
     if (viewMode === "parks" || viewMode === "landmarks" || viewMode === "states") return "switch to All to edit";
     if (window.SUBDIVIDED[n] && viewMode === "all") return "Click your states instead";
-    return regionTooltip("countries", n);
+    return `${STATUS_LABEL[Store.get("countries", n) || "none"]} · click for places`;
   };
+  // "Paris, Nice · click for places": what's pinned inside a region.
+  function placesSub(key, name) {
+    const mine = Store.places().filter((p) => p[key] === name);
+    const list = mine.slice(0, 4).map((p) => p.name).join(", ") + (mine.length > 4 ? ` +${mine.length - 4}` : "");
+    return (list || "No places yet") + " · click for places";
+  }
 
   countryPaths
     .on("mousemove", (event, d) => {
@@ -472,12 +545,14 @@
     })
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
-      if (dragMoved || viewMode === "parks" || viewMode === "landmarks" || viewMode === "states") return;
+      if (dragMoved || Store.comparing()) return;
       const n = countryName(d);
-      if (window.SUBDIVIDED[n] && viewMode === "all") return; // states handle it
-      Store.cycle("countries", n);
-      showTooltip(event, flagImg("countries", n) + displayName(n), countrySub(n));
-      showMarkToast("countries", n, flagImg("countries", n) + " " + displayName(n));
+      if (mapMode !== "places") {
+        if (viewMode === "parks" || viewMode === "landmarks" || viewMode === "states") return;
+        if (window.SUBDIVIDED[n] && viewMode === "all") return; // states handle it
+      }
+      hideTooltip();
+      openPanel(n);
     })
     .on("contextmenu", (event, d) => {
       event.preventDefault();
@@ -487,13 +562,20 @@
     });
 
   const stateSub = (n) => Store.comparing() ? compareSub("states", n)
+    : mapMode === "places" ? placesSub("state", n)
     : viewMode !== "all" && viewMode !== "states" ? "parks view — switch to All to edit"
     : regionTooltip("states", n);
   statePaths
     .on("mousemove", (event, d) => showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, stateSub(d.properties.name)))
     .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
-      if (dragMoved || (viewMode !== "all" && viewMode !== "states")) return;
+      if (dragMoved) return;
+      if (mapMode === "places" && !Store.comparing()) {
+        hideTooltip();
+        openPanel(STATE_COUNTRY[d.properties.name]);
+        return;
+      }
+      if (viewMode !== "all" && viewMode !== "states") return;
       Store.cycle("states", d.properties.name);
       showTooltip(event, flagImg("states", d.properties.name) + d.properties.name, stateSub(d.properties.name));
       showMarkToast("states", d.properties.name, flagImg("states", d.properties.name) + " " + d.properties.name);
@@ -538,6 +620,7 @@
 
   async function openCard(item, type) {
     const isPark = type === "parks";
+    closePanel();
     card.classList.add("open");
     const title = isPark ? item.name + " National Park" : item.name;
     card.querySelector("h3").textContent = title;
@@ -653,7 +736,7 @@
     .on("mousemove", (event) => {
       const g = d3.select(event.target.closest("g.pin-group")).datum();
       if (!g) return;
-      const names = g.members.map((m) => (m.type === "parks" ? "🏞️ " : "⭐ ") + m.d.name);
+      const names = g.members.map((m) => ({ parks: "🏞️ ", landmarks: "⭐ ", places: "📍 " })[m.type] + m.d.name);
       const list = names.slice(0, 8).join("<br>") +
         (names.length > 8 ? `<br>+${names.length - 8} more` : "");
       tooltip.style.display = "block";
@@ -701,12 +784,200 @@
     })(start);
   }
 
+  // ---- place panel ----
+  // One panel for a country (its status, its places, search inside it) or,
+  // with country = null, a worldwide "add a place" search.
+  const panel = document.getElementById("place-panel");
+  const ppSearch = document.getElementById("pp-search");
+  const ppResults = document.getElementById("pp-results");
+  let panelCountry; // undefined = closed, null = worldwide, else a country name
+  let panelHighlight = null;
+  let searchHits = [];
+  let searching = false;
+  let searchTimer = null;
+
+  const STATUS_ORDER = ["visited", "lived", "want"];
+  const CHIP_WORDS = { visited: "Been", lived: "Lived", want: "Wish" };
+  const ADD_WORDS = { visited: "+ Been", lived: "+ Lived", want: "+ Wish" };
+
+  function openPanel(country, highlightId) {
+    card.classList.remove("open");
+    const changed = panelCountry !== (country || null);
+    panelCountry = country || null;
+    panelHighlight = highlightId || null;
+    if (changed) {
+      ppSearch.value = "";
+      searchHits = [];
+    }
+    ppSearch.placeholder = panelCountry
+      ? `Add a place in ${displayName(panelCountry)}…`
+      : "Search any city, region or island…";
+    panel.classList.add("open");
+    renderPanel();
+    if (!panelCountry) ppSearch.focus();
+  }
+
+  function closePanel() {
+    panel.classList.remove("open");
+    panelCountry = undefined;
+  }
+  document.getElementById("pp-close").onclick = closePanel;
+
+  // Been / Lived / Wish chips; clicking the active one clears it.
+  function statusButtons(current, onPick, words) {
+    const wrap = document.createElement("div");
+    wrap.className = "pp-chips";
+    for (const s of STATUS_ORDER) {
+      const b = document.createElement("button");
+      b.className = "pp-chip st-" + s + (current === s ? " active" : "");
+      b.textContent = current === s ? CHIP_WORDS[s] : words[s];
+      b.onclick = (e) => { e.stopPropagation(); onPick(current === s ? null : s); };
+      wrap.appendChild(b);
+    }
+    return wrap;
+  }
+
+  function noteButton(key, label) {
+    const b = document.createElement("button");
+    b.className = "pp-icon";
+    b.title = "Add a note";
+    b.textContent = "✎";
+    b.onclick = () => openNoteModal(key, label);
+    return b;
+  }
+
+  function placeRow(place, words, onPick, onName) {
+    const row = document.createElement("div");
+    row.className = "pp-row";
+    row.innerHTML = `<span class="pp-dot st-${place.status || "none"}"></span><div class="pp-name"><b></b><span></span></div>`;
+    row.querySelector("b").textContent = place.name;
+    row.querySelector(".pp-name span").textContent = place.sub;
+    row.querySelector(".pp-name").onclick = onName;
+    row.appendChild(statusButtons(place.status, onPick, words));
+    return row;
+  }
+
+  function renderPanel() {
+    if (panelCountry === undefined) return;
+    const c = panelCountry;
+    const title = document.getElementById("pp-title");
+    const sub = document.getElementById("pp-sub");
+    const statusRow = document.getElementById("pp-status");
+    const listLabel = document.getElementById("pp-list-label");
+    const list = document.getElementById("pp-list");
+    statusRow.innerHTML = "";
+    list.innerHTML = "";
+
+    if (!c) {
+      title.textContent = "📍 Add a place";
+      sub.textContent = "Cities, regions, islands, anywhere. Marking a place as been fills in its country.";
+      statusRow.style.display = "none";
+      listLabel.style.display = "none";
+      renderResults();
+      return;
+    }
+
+    const mine = Store.places().filter((p) => p.country === c);
+    title.innerHTML = `${flagImg("countries", c)} ${displayName(c)}`;
+    const been = mine.filter((p) => BEEN(p.status)).length;
+    const wish = mine.filter((p) => p.status === "want").length;
+    sub.textContent = mine.length ? `${been} been · ${wish} wish` : "No places yet. Search below to add some.";
+
+    statusRow.style.display = "";
+    if (window.SUBDIVIDED[c]) {
+      statusRow.innerHTML = `<div class="pp-note">Colored by your states and places. Click states on the map to change them.</div>`;
+    } else {
+      const label = document.createElement("span");
+      label.className = "pp-label inline";
+      label.textContent = "Country";
+      statusRow.appendChild(label);
+      statusRow.appendChild(statusButtons(Store.get("countries", c),
+        (s) => Store.set("countries", c, s), CHIP_WORDS));
+      statusRow.appendChild(noteButton("countries/" + c, displayName(c)));
+    }
+
+    // My places here: been / lived first, then wishes, alphabetical.
+    listLabel.style.display = mine.length ? "" : "none";
+    const rank = (p) => (p.status === "want" ? 1 : 0);
+    mine.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+    for (const p of mine) {
+      const row = placeRow(
+        { ...p, sub: [Places.kindLabel(p.kind), p.state].filter(Boolean).join(" · ") },
+        CHIP_WORDS,
+        (s) => Store.setPlaceStatus(p.id, s),
+        () => flyTo([p.lon, p.lat], Math.max(zoomK, 6)),
+      );
+      row.appendChild(noteButton("places/" + p.id, p.name));
+      if (p.id === panelHighlight) row.classList.add("highlight");
+      list.appendChild(row);
+    }
+    const hl = list.querySelector(".highlight");
+    if (hl) hl.scrollIntoView({ block: "nearest" });
+    renderResults();
+  }
+
+  function renderResults() {
+    ppResults.innerHTML = "";
+    if (ppSearch.value.trim().length < 2) return;
+    if (!searchHits.length) {
+      ppResults.innerHTML = `<div class="pp-empty">${searching ? "Searching…"
+        : "No matches" + (panelCountry ? ` in ${displayName(panelCountry)}` : "") + "."}</div>`;
+      return;
+    }
+    const mineById = {};
+    Store.places().forEach((p) => { mineById[p.id] = p; });
+    for (const hit of searchHits) {
+      const have = mineById[hit.id];
+      const where = [!panelCountry && hit.country && displayName(hit.country), hit.state].filter(Boolean).join(", ");
+      ppResults.appendChild(placeRow(
+        { name: hit.name, status: have && have.status, sub: [Places.kindLabel(hit.kind), where].filter(Boolean).join(" · ") },
+        ADD_WORDS,
+        (s) => {
+          const { id, ...place } = hit;
+          Store.setPlace(id, s ? { ...place, status: s } : null);
+          if (s) flyTo([hit.lon, hit.lat], Math.max(zoomK, 4));
+        },
+        () => flyTo([hit.lon, hit.lat], Math.max(zoomK, 5)),
+      ));
+    }
+  }
+
+  ppSearch.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    const q = ppSearch.value.trim();
+    searchHits = [];
+    searching = q.length >= 2;
+    renderResults();
+    if (!searching) return;
+    searchTimer = setTimeout(async () => {
+      const r = projection.rotate();
+      const hits = await Places.search(q, { country: panelCountry, near: [-r[0], -r[1]] });
+      if (hits === null || ppSearch.value.trim() !== q) return; // a newer search took over
+      searching = false;
+      searchHits = hits;
+      renderResults();
+    }, 250);
+  });
+
+  document.getElementById("btn-add-place").onclick = () => openPanel(null);
+
+  // ---- map mode (countries / places) ----
+  const mapButtons = document.querySelectorAll("#map-mode button");
+  function setMapMode(mode) {
+    mapMode = mode;
+    mapButtons.forEach((b) => b.classList.toggle("active", b.dataset.map === mode));
+    recolor();
+    render();
+  }
+  mapButtons.forEach((b) => { b.onclick = () => setMapMode(b.dataset.map); });
+
   // ---- view toggle ----
   const segButtons = document.querySelectorAll("#view-toggle button");
   function setViewMode(mode) {
     viewMode = mode;
     segButtons.forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
     if (mode === "countries" || mode === "states") card.classList.remove("open"); // pins are hidden
+    if (mode === "parks" || mode === "landmarks") closePanel();
     recolor();
     render();
   }

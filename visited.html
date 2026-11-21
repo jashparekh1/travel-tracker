@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Travels · Visited</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=26">
+  <link rel="stylesheet" href="css/style.css?v=29">
 </head>
 <body class="page">
   <div class="topbar">
@@ -29,10 +29,16 @@
 
     <div id="places-view">
       <div class="tabs">
+        <button data-tab="places-list">📍 Places</button>
         <button data-tab="countries" class="active">Countries</button>
         <button data-tab="states">States</button>
         <button data-tab="parks">National Parks</button>
         <button data-tab="landmarks">Wonders</button>
+      </div>
+
+      <div class="tab-pane" id="pane-places-list">
+        <div class="pane-stats" id="stats-places"></div>
+        <div id="places-by-country"></div>
       </div>
 
       <div class="tab-pane active" id="pane-countries">
@@ -76,7 +82,8 @@
   <script src="js/continents.js?v=7"></script>
   <script src="js/parks.js?v=3"></script>
   <script src="js/landmarks.js?v=2"></script>
-  <script src="js/store.js?v=9"></script>
-  <script src="js/visited.js?v=18"></script>
+  <script src="js/places.js?v=1"></script>
+  <script src="js/store.js?v=10"></script>
+  <script src="js/visited.js?v=19"></script>
 </body>
 </html>

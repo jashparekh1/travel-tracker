@@ -147,6 +147,8 @@ body.page .topbar { position: sticky; }
 .status-visited { fill: var(--visited); }
 .status-lived { fill: var(--lived); }
 .status-want { fill: var(--want); }
+/* Places mode: been somewhere but no places pinned there yet */
+.status-faint { fill: color-mix(in srgb, var(--visited) 22%, var(--land)); }
 
 /* Compare mode: blue = both, orange = person A, green = person B */
 .cmp-none { fill: var(--land); }
@@ -167,8 +169,20 @@ body.page .topbar { position: sticky; }
 .city.capital circle { fill: #fff; }
 .city.capital text { font-weight: 700; font-size: 10.5px; }
 
-.park { cursor: pointer; }
-.park .pin-body { stroke: #0b1020; stroke-width: 1; }
+/* Pins: the 📍 emoji everywhere. --tint recolors it per status (it's
+   naturally red = been); hover adds a soft glow on top of the tint. */
+.park { cursor: pointer; --tint: brightness(1); }
+.park .pin-emoji { font-size: 24px; filter: var(--tint) drop-shadow(0 1px 1.5px #000a); }
+.park:hover .pin-emoji { filter: var(--tint) brightness(1.2) drop-shadow(0 0 3px #fff8); }
+.park.st-none { --tint: grayscale(1) brightness(0.95); }
+.park.st-none .pin-emoji { opacity: 0.8; }
+.park.st-lived { --tint: hue-rotate(115deg) saturate(1.1) brightness(1.2); }
+.park.st-want { --tint: hue-rotate(200deg) saturate(0.85) brightness(1.35); }
+/* Compare colors come after the status rules — source order wins. */
+.park.cmp-both { --tint: hue-rotate(205deg) saturate(1.1) brightness(1.2); }
+.park.cmp-a { --tint: hue-rotate(35deg) saturate(1.2) brightness(1.25); }
+.park.cmp-b { --tint: hue-rotate(115deg) saturate(1.1) brightness(1.2); }
+.park.cmp-none { --tint: grayscale(1) brightness(0.95); }
 
 /* Pin name labels: shown/hidden per frame by the declutter pass in app.js */
 .park-label {
@@ -181,21 +195,6 @@ body.page .topbar { position: sticky; }
   stroke-width: 2.5px;
 }
 
-.pin-star {
-  font-size: 9px;
-  font-weight: 700;
-  fill: #0b1020;
-  pointer-events: none;
-}
-.park .pin-body { fill: #7c8db0; }
-.park.st-visited .pin-body { fill: #ef4444; }
-.park.st-want .pin-body { fill: var(--want); }
-/* Compare colors come after the status rules — source order wins. */
-.park.cmp-both .pin-body { fill: var(--accent); }
-.park.cmp-a .pin-body { fill: var(--visited); }
-.park.cmp-b .pin-body { fill: var(--lived); }
-.park.cmp-none .pin-body { fill: #7c8db0; }
-.park:hover .pin-body { stroke: #fff; }
 
 /* Pin groups: count bubble for pins too close together to tell apart */
 .pin-group { cursor: pointer; }
@@ -860,4 +859,123 @@ h2.continent {
   .modal input, .compare-pick select { font-size: 16px; }
 
   #park-card { right: 8px; left: 8px; top: auto; bottom: 64px; width: auto; }
+
 }
+
+/* ---------- places: map mode switch + add button ---------- */
+.map-tools {
+  position: fixed;
+  right: 16px;
+  bottom: 56px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.map-tools .seg, .map-tools .btn {
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
+  backdrop-filter: blur(8px);
+}
+/* Places mode: the layer filter bar and its hints don't apply */
+body.places-mode #view-toggle,
+body.places-mode #park-hint { display: none !important; }
+body.places-mode .map-tools { bottom: 16px; }
+.legend .places-only { display: none; }
+body.places-mode .legend .places-only { display: flex; }
+.legend .swatch.faint { background: color-mix(in srgb, var(--visited) 22%, var(--land)); }
+
+/* ---------- place panel ---------- */
+#place-panel {
+  position: fixed;
+  right: 16px;
+  top: 64px;
+  z-index: 15;
+  width: 340px;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid #2b3760;
+  border-radius: 12px;
+  padding: 14px 14px 12px;
+  display: none;
+  box-shadow: 0 12px 32px #0008;
+}
+#place-panel.open { display: block; }
+#place-panel .close {
+  position: absolute; top: 10px; right: 10px;
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 14px;
+}
+#place-panel h3 { font-size: 16px; display: flex; align-items: center; gap: 8px; padding-right: 24px; }
+.pp-sub { color: var(--muted); font-size: 12.5px; margin: 3px 0 10px; }
+.pp-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0 10px; border-bottom: 1px solid #232c49; margin-bottom: 8px;
+}
+.pp-note { color: var(--muted); font-size: 12px; }
+.pp-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: #6b7894; margin: 4px 0 4px;
+}
+.pp-label.inline { margin: 0 auto 0 0; }
+.pp-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 6px; margin: 0 -6px; border-radius: 8px;
+}
+.pp-row:hover { background: #ffffff08; }
+.pp-row.highlight { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.pp-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: #7c8db0; box-shadow: 0 0 0 2px #0b1020; }
+.pp-dot.st-visited { background: #ef4444; }
+.pp-dot.st-lived { background: var(--lived); }
+.pp-dot.st-want { background: var(--want); }
+.pp-row.result .pp-dot, .pp-dot.st-none { background: transparent; box-shadow: inset 0 0 0 1.5px #4a5675; }
+.pp-name { flex: 1; min-width: 0; cursor: pointer; line-height: 1.25; }
+.pp-name b { display: block; font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-name span { display: block; font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-chips { display: flex; gap: 3px; flex: none; }
+.pp-chip {
+  background: var(--panel-2); color: var(--muted);
+  border: 1px solid #2b3760; border-radius: 999px;
+  padding: 3px 8px; font-size: 11.5px; cursor: pointer;
+}
+.pp-chip:hover { color: var(--text); border-color: #3b4a7a; }
+.pp-chip.active.st-visited { background: #ef4444; border-color: #ef4444; color: #fff; font-weight: 600; }
+.pp-chip.active.st-lived { background: var(--lived); border-color: var(--lived); color: #06200f; font-weight: 600; }
+.pp-chip.active.st-want { background: var(--want); border-color: var(--want); color: #082030; font-weight: 600; }
+.pp-icon {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 13px; padding: 2px 4px; flex: none;
+}
+.pp-icon:hover { color: var(--text); }
+.pp-search { margin-top: 10px; }
+#pp-search {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid #2b3760;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13.5px;
+}
+#pp-search:focus { outline: none; border-color: var(--accent); }
+#pp-results { margin-top: 6px; }
+.pp-empty { color: var(--muted); font-size: 12.5px; padding: 6px 0; }
+
+@media (max-width: 640px) {
+  .map-tools { right: 8px; bottom: 48px; }
+  body.places-mode .map-tools { bottom: 8px; }
+  .map-tools .btn { font-size: 12px; padding: 5px 9px; }
+  #place-panel { right: 8px; left: 8px; top: auto; bottom: 92px; width: auto; max-height: 55vh; }
+  #pp-search { font-size: 16px; }
+}
+
+/* ---------- visited page: places tab ---------- */
+.place-country { margin-bottom: 18px; max-width: 720px; }
+.place-country h2.continent { display: flex; align-items: center; gap: 8px; }
+.place-count { margin-left: auto; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.place-line {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 8px;
+  background: var(--panel); border: 1px solid #232c49; margin-bottom: 6px;
+}
+.place-when { font-size: 12px; color: var(--muted); white-space: nowrap; }

@@ -375,9 +375,66 @@
       `Visited <b>${c.parks}</b> of <b>${c.parksTotal}</b> national parks.`;
   }
 
+  // ---- places tab: my places grouped by country ----
+  // Countries with the most places first; inside each, been / lived
+  // before wishes. Click a status chip to change it (active one clears).
+  const placesRoot = document.getElementById("places-by-country");
+  const BEEN = (s) => s === "visited" || s === "lived";
+
+  function renderPlaces() {
+    const all = Store.places();
+    const byCountry = {};
+    for (const p of all) (byCountry[p.country || ""] = byCountry[p.country || ""] || []).push(p);
+    const order = Object.keys(byCountry).sort((a, b) =>
+      byCountry[b].length - byCountry[a].length || displayName(a).localeCompare(displayName(b)));
+    placesRoot.innerHTML = "";
+    if (!all.length) {
+      placesRoot.innerHTML = `<p class="passport-empty">No places yet. On the globe, click a country ` +
+        `(or press <b>📍 Add place</b>) and search for a city, region or island.</p>`;
+    }
+    for (const c of order) {
+      const list = byCountry[c];
+      const been = list.filter((p) => BEEN(p.status)).length;
+      const wish = list.filter((p) => p.status === "want").length;
+      const section = document.createElement("section");
+      section.className = "place-country";
+      section.innerHTML = `<h2 class="continent">${c ? flagImg("countries", c) + " " + displayName(c) : "Elsewhere"}` +
+        `<span class="place-count">${been} been · ${wish} wish</span></h2>`;
+      const rank = (p) => (p.status === "want" ? 1 : 0);
+      list.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+      for (const p of list) {
+        const row = document.createElement("div");
+        row.className = "place-line";
+        const dates = Store.notesFor("places/" + p.id).map(noteFrom).filter(Boolean).sort();
+        row.innerHTML = `<span class="pp-dot st-${p.status}"></span>` +
+          `<div class="pp-name"><b></b><span></span></div><span class="place-when">${dates.length ? fmtMonth(dates[0]) : ""}</span>`;
+        row.querySelector("b").textContent = p.name;
+        row.querySelector(".pp-name span").textContent = [Places.kindLabel(p.kind), p.state].filter(Boolean).join(" · ");
+        const chips = document.createElement("div");
+        chips.className = "pp-chips";
+        for (const [s, word] of Object.entries(Places.STATUS_WORD)) {
+          const b = document.createElement("button");
+          b.className = "pp-chip st-" + s + (p.status === s ? " active" : "");
+          b.textContent = word;
+          b.onclick = () => Store.setPlaceStatus(p.id, p.status === s ? null : s);
+          chips.appendChild(b);
+        }
+        row.appendChild(chips);
+        section.appendChild(row);
+      }
+      placesRoot.appendChild(section);
+    }
+    const nCountries = order.filter(Boolean).length;
+    document.getElementById("stats-places").innerHTML = all.length
+      ? `<b>${all.filter((p) => BEEN(p.status)).length}</b> places been, ` +
+        `<b>${all.filter((p) => p.status === "want").length}</b> on the wishlist, across ` +
+        `<b>${nCountries}</b> countr${nCountries === 1 ? "y" : "ies"}. Add more from the globe.`
+      : "";
+  }
+
   document.getElementById("btn-export").onclick = () => Store.exportFile();
 
-  function refreshAll() { refreshStamps(); refreshParks(); refreshStats(); renderPassport(); }
+  function refreshAll() { refreshStamps(); refreshParks(); refreshStats(); renderPassport(); renderPlaces(); }
   Store.onChange(refreshAll);
   refreshAll();
 })();

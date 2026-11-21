@@ -13,6 +13,11 @@
   }
   for (const p of window.PARKS) placeKeys[`${p.name} National Park`] = "parks/" + p.name;
   for (const l of window.LANDMARKS) placeKeys[l.name] = "landmarks/" + l.name;
+  // Your own places (Paris, French Riviera…), labeled with their country.
+  for (const p of Store.places()) {
+    const label = p.country ? `${p.name}, ${displayName(p.country)}` : p.name;
+    if (!(label in placeKeys)) placeKeys[label] = "places/" + p.id;
+  }
 
   const datalist = document.getElementById("note-places");
   Object.keys(placeKeys).sort().forEach((label) => {
@@ -26,6 +31,10 @@
     const name = rest.join("/");
     if (type === "countries") return `${flagImg("countries", name)} ${displayName(name)}`;
     if (type === "states") return `${flagImg("states", name)} ${name}`;
+    if (type === "places") {
+      const p = Store.places().find((x) => x.id === name);
+      return `📍 ${p ? p.name : "Removed place"}`;
+    }
     return `${type === "landmarks" ? "⭐" : "🏞️"} ${name}`;
   }
 

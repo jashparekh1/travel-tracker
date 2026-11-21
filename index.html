@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>My Travels</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
-  <link rel="stylesheet" href="css/style.css?v=26">
+  <link rel="stylesheet" href="css/style.css?v=29">
 </head>
 <body>
   <div class="topbar">
@@ -27,6 +27,14 @@
     </div>
   </div>
 
+  <div class="map-tools" id="map-tools">
+    <button class="btn" id="btn-add-place" title="Search any city, region or island">📍 Add place</button>
+    <div class="seg" id="map-mode">
+      <button data-map="countries" class="active" title="Countries filled in, your places pinned on top">🗺️ Countries</button>
+      <button data-map="places" title="Only the exact places you've been and want to go">📍 Places</button>
+    </div>
+  </div>
+
   <div class="seg seg-float" id="view-toggle">
     <button data-mode="all" class="active">All</button>
     <button data-mode="countries">Countries</button>
@@ -42,7 +50,8 @@
     <div class="row"><span class="swatch" style="background: var(--lived)"></span> Lived</div>
     <div class="row"><span class="swatch" style="background: var(--want)"></span> Want to go</div>
     <div class="row"><span class="swatch" style="background: var(--land)"></span> Not yet</div>
-    <div class="hint">Drag to spin · scroll to zoom · click to mark</div>
+    <div class="row places-only"><span class="swatch faint"></span> Been, no places added yet</div>
+    <div class="hint">Drag to spin · scroll to zoom · click a country for its places</div>
     <div class="hint" id="park-hint">Zoom in on the US to see park pins 📍</div>
   </div>
 
@@ -118,6 +127,21 @@
     </div>
   </div>
 
+  <div id="place-panel">
+    <button class="close" id="pp-close">✕</button>
+    <header>
+      <h3 id="pp-title"></h3>
+      <div class="pp-sub" id="pp-sub"></div>
+    </header>
+    <div class="pp-status" id="pp-status"></div>
+    <div class="pp-label" id="pp-list-label">Places</div>
+    <div id="pp-list"></div>
+    <div class="pp-search">
+      <input id="pp-search" type="search" autocomplete="off" spellcheck="false">
+      <div id="pp-results"></div>
+    </div>
+  </div>
+
   <script src="vendor/d3.v7.min.js"></script>
   <script src="vendor/topojson-client.min.js"></script>
   <script src="vendor/supabase.min.js"></script>
@@ -127,10 +151,11 @@
   <script src="js/continents.js?v=7"></script>
   <script src="js/parks.js?v=3"></script>
   <script src="js/landmarks.js?v=2"></script>
-  <script src="js/store.js?v=9"></script>
+  <script src="js/places.js?v=1"></script>
+  <script src="js/store.js?v=10"></script>
   <script src="js/account.js?v=2"></script>
   <script src="js/friends.js?v=4"></script>
   <script src="js/compare.js?v=2"></script>
-  <script src="js/app.js?v=21"></script>
+  <script src="js/app.js?v=26"></script>
 </body>
 </html>

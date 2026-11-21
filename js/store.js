@@ -8,7 +8,9 @@
 
 window.Store = (() => {
   const KEY = "travel-tracker-overrides-v1";
-  const TYPES = ["countries", "states", "parks", "landmarks"];
+  // "places" holds searched cities/regions: id -> {name, country, state,
+  // lat, lon, kind, status} (an override of "none" removes one).
+  const TYPES = ["countries", "states", "parks", "landmarks", "places"];
   const seed = window.SEED_TRAVELS || {};
 
   let overrides;
@@ -31,7 +33,8 @@ window.Store = (() => {
 
   const listeners = [];
   const syncListeners = [];
-  const notify = () => listeners.forEach((cb) => cb());
+  let placesCache = null; // merged places list, rebuilt after any change
+  const notify = () => { placesCache = null; listeners.forEach((cb) => cb()); };
   let syncState = "local"; // local | signedout | saving | synced | error
   const setSync = (s) => { syncState = s; syncListeners.forEach((cb) => cb(s)); };
   const save = () => localStorage.setItem(KEY, JSON.stringify(overrides));
@@ -44,21 +47,63 @@ window.Store = (() => {
     return seed[type][name] || null;
   }
 
-  // Country status; the US and India are derived from their states unless
-  // set explicitly.
-  function country(name) {
-    const explicit = raw("countries", name);
-    const subs = window.SUBDIVIDED[name];
-    if (!subs || explicit) return explicit;
-    const statuses = subs.map((s) => raw("states", s));
+  // ---- places ----
+  // Merged list of my places (seed/cloud base + local overrides).
+  function placesMap() {
+    if (placesCache) return placesCache;
+    const base = remote ? (remote.places || {}) : seed.places;
+    const ids = new Set([...Object.keys(base), ...Object.keys(overrides.places)]);
+    const out = {};
+    for (const id of ids) {
+      const o = overrides.places[id];
+      const p = o !== undefined ? (o === "none" ? null : o) : base[id];
+      if (p && p.status) out[id] = p;
+    }
+    return (placesCache = out);
+  }
+  const places = () => Object.entries(placesMap()).map(([id, p]) => ({ id, ...p }));
+
+  // Strongest status among a list: lived > visited > want.
+  function best(statuses) {
     if (statuses.includes("lived")) return "lived";
     if (statuses.includes("visited")) return "visited";
     if (statuses.includes("want")) return "want";
     return null;
   }
+  // Places use "been" in the UI but share the "visited" status word.
+  const placeStatuses = (key, value) =>
+    places().filter((p) => p[key] === value).map((p) => p.status);
+
+  // State status: explicit, else derived from places inside it.
+  function state(name) {
+    return raw("states", name) || best(placeStatuses("state", name));
+  }
+
+  // Country status: explicit wins; otherwise derived from its states (US,
+  // India) and from the places inside it.
+  function country(name) {
+    const explicit = raw("countries", name);
+    if (explicit) return explicit;
+    const subs = window.SUBDIVIDED[name] || [];
+    return best(subs.map(state).concat(placeStatuses("country", name)));
+  }
 
   function get(type, name) {
-    return type === "countries" ? country(name) : raw(type, name);
+    return type === "countries" ? country(name) : type === "states" ? state(name) : raw(type, name);
+  }
+
+  function setPlace(id, place) {
+    if (comparing) return;
+    overrides.places[id] = place && place.status ? place : "none";
+    save();
+    schedulePush();
+    notify();
+  }
+
+  function setPlaceStatus(id, status) {
+    const p = placesMap()[id];
+    if (!p) return;
+    setPlace(id, status ? { ...p, status } : null);
   }
 
   const CYCLE = { region: [null, "visited", "lived", "want"], park: [null, "visited", "want"] };
@@ -67,7 +112,9 @@ window.Store = (() => {
   function cycle(type, name) {
     if (comparing) return null; // read-only while comparing
     const order = type === "parks" || type === "landmarks" ? CYCLE.park : CYCLE.region;
-    const next = order[(order.indexOf(raw(type, name)) + 1) % order.length];
+    // Cycle from what's shown, so a state colored by its places moves on
+    // to the next status instead of repeating it.
+    const next = order[(order.indexOf(get(type, name)) + 1) % order.length];
     overrides[type][name] = next === null ? "none" : next;
     save();
     schedulePush();
@@ -169,8 +216,9 @@ window.Store = (() => {
     const sovereign = names.filter((n) => window.COUNTRY_META[n][2]);
     const c = sovereign.filter((n) => BEEN(country(n))).length;
     const t = names.filter((n) => !window.COUNTRY_META[n][2] && BEEN(country(n))).length;
-    const s = window.US_STATES.filter((n) => BEEN(raw("states", n))).length;
-    const ind = window.INDIA_ALL.filter((n) => BEEN(raw("states", n))).length;
+    const s = window.US_STATES.filter((n) => BEEN(state(n))).length;
+    const ind = window.INDIA_ALL.filter((n) => BEEN(state(n))).length;
+    const pl = places();
     const p = window.PARKS.filter((pk) => raw("parks", pk.name) === "visited").length;
     const l = window.LANDMARKS.filter((lm) => raw("landmarks", lm.name) === "visited").length;
     return {
@@ -179,6 +227,8 @@ window.Store = (() => {
       indiaStates: ind, indiaStatesTotal: window.INDIA_ALL.length,
       parks: p, parksTotal: window.PARKS.length,
       landmarks: l, landmarksTotal: window.LANDMARKS.length,
+      places: pl.filter((p) => BEEN(p.status)).length,
+      placesWish: pl.filter((p) => p.status === "want").length,
     };
   }
 
@@ -201,6 +251,7 @@ window.Store = (() => {
       const v = raw("landmarks", lm.name);
       if (v) out.landmarks[lm.name] = v;
     }
+    out.places = placesMap();
     out.notes = allNotes();
     return out;
   }
@@ -247,6 +298,7 @@ window.Store = (() => {
 
   async function handleUser(u) {
     user = u;
+    placesCache = null;
     comparing = null;
     if (!user) {
       remote = null;
@@ -392,10 +444,7 @@ window.Store = (() => {
     doc = doc || {};
     const c = doc.countries || {}, s = doc.states || {}, p = doc.parks || {};
     const sovereign = Object.keys(window.COUNTRY_META).filter((n) => window.COUNTRY_META[n][2]);
-    let countries = sovereign.filter((n) => BEEN(c[n])).length;
-    for (const [cn, subs] of Object.entries(window.SUBDIVIDED)) {
-      if (!BEEN(c[cn]) && subs.some((n) => BEEN(s[n]))) countries += 1;
-    }
+    const countries = sovereign.filter((n) => BEEN(docCountry(doc, n))).length;
     return {
       countries,
       states: window.US_STATES.filter((n) => BEEN(s[n])).length,
@@ -409,10 +458,11 @@ window.Store = (() => {
   // Country status inside an arbitrary doc (same states-derivation rule).
   function docCountry(doc, name) {
     const explicit = (doc.countries || {})[name];
-    const subs = window.SUBDIVIDED[name];
-    if (!subs || explicit) return explicit || null;
+    if (explicit) return explicit;
     const s = doc.states || {};
-    return subs.some((n) => BEEN(s[n])) ? "visited" : null;
+    const subs = window.SUBDIVIDED[name] || [];
+    const fromPlaces = Object.values(doc.places || {}).some((p) => p.country === name && BEEN(p.status));
+    return subs.some((n) => BEEN(s[n])) || fromPlaces ? "visited" : null;
   }
 
   function docStatus(doc, type, name) {
@@ -475,6 +525,7 @@ window.Store = (() => {
 
   return {
     get, cycle, set, counts, exportFile, clearLocal,
+    places, setPlace, setPlaceStatus,
     notesFor, allNotes, addNote, updateNote, deleteNote,
     addTrip, updateTrip, deleteTrip,
     onChange: (cb) => listeners.push(cb),
